@@ -7,10 +7,12 @@ import { addHistory, getAllHistory, clearHistory as clearDb } from "@/lib/storag
 type HistoryItem = {
   id: string;
   prompt: string;
+  model: string;
   images: { url?: string; b64_json?: string }[];
   error?: string;
 };
 
+export default function ChatUI() {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<HistoryItem[]>([]);
@@ -18,16 +20,22 @@ type HistoryItem = {
   const [files, setFiles] = useState<{ mimeType: string; data: string; name: string }[]>([]);
   const [preview, setPreview] = useState<{ src: string; alt: string } | null>(null);
   const [enhancePrompt, setEnhancePrompt] = useState(false);
+  const [model, setModel] = useState("openai/dall-e-3");
 
   useEffect(() => {
-    // Load last history entries from IndexedDB on mount (best-effort, ignore errors)
     let cancelled = false;
     (async () => {
       try {
         const records = await getAllHistory(50);
         if (!cancelled) {
           setItems(
-            records.map((r) => ({ id: r.id, prompt: r.prompt, images: r.images, error: r.error }))
+            records.map((r) => ({
+              id: r.id,
+              prompt: r.prompt,
+              images: r.images,
+              error: r.error,
+              model: r.model,
+            }))
           );
         }
       } catch {
@@ -43,39 +51,71 @@ type HistoryItem = {
     let text = prompt.trim();
     if (!text) return;
     setLoading(true);
+    let errorMessage = "";
     try {
-      // If enhancePrompt is checked, call Gemini API to enhance the prompt
       if (enhancePrompt) {
         try {
-          // Replace with your Gemini API endpoint and key
           const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
-          const geminiApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + geminiApiKey;
+          const geminiApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=" + geminiApiKey;
+          const geminiPrompt = `Rewrite the following prompt to be a single, highly descriptive prompt for image generation. Do not provide options or suggestions, just return the enhanced prompt only: ${text}`;
           const geminiRes = await fetch(geminiApiUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              contents: [{ parts: [{ text }] }],
+              contents: [
+                {
+                  parts: [
+                    { text: geminiPrompt }
+                  ]
+                }
+              ]
             }),
           });
-          const geminiJson = await geminiRes.json();
-          // Gemini returns enhanced text in geminiJson.candidates[0].content.parts[0].text
-          if (geminiJson?.candidates?.[0]?.content?.parts?.[0]?.text) {
+          let geminiJson;
+          try {
+            geminiJson = await geminiRes.json();
+          } catch (err) {
+            errorMessage = "Gemini API returned malformed response.";
+            throw new Error(errorMessage);
+          }
+          if (geminiRes.ok && geminiJson?.candidates?.[0]?.content?.parts?.[0]?.text) {
             text = geminiJson.candidates[0].content.parts[0].text;
+          } else {
+            errorMessage = geminiJson?.error?.message || "Gemini API error.";
+            throw new Error(errorMessage);
           }
         } catch (err) {
-          // If Gemini fails, fallback to original prompt
+          // fallback to original prompt, but record error
+          if (!errorMessage) errorMessage = err instanceof Error ? err.message : "Gemini API error.";
         }
       }
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: text, n, images: files.map(({ mimeType, data }) => ({ mimeType, data })) }),
+        body: JSON.stringify({
+          prompt: text,
+          n,
+          model,
+          images: files.map(({ mimeType, data }) => ({ mimeType, data })),
+        }),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json?.error || "Request failed");
+      let json;
+      try {
+        json = await res.json();
+      } catch (err) {
+        errorMessage = "API returned malformed response.";
+        throw new Error(errorMessage);
+      }
+      if (!res.ok || json?.error) {
+        errorMessage = json?.error || `Request failed with status ${res.status}`;
+        throw new Error(errorMessage);
+      }
       const images = json.images as { url?: string; b64_json?: string }[];
+      if (!images || !Array.isArray(images) || images.length === 0) {
+        errorMessage = "No images returned. There may have been an error.";
+        throw new Error(errorMessage);
+      }
       const id = crypto.randomUUID();
-      // For offline storage, ensure any URL images are captured as base64 as well
       const persistedImages: { url?: string; b64_json?: string }[] = await Promise.all(
         images.map(async (img) => {
           if (img.b64_json || !img.url) return img;
@@ -99,18 +139,18 @@ type HistoryItem = {
           return img;
         })
       );
-      const rec = { id, prompt: text, images: persistedImages, createdAt: Date.now() };
-      setItems((prev) => [{ id, prompt: text, images: images }, ...prev]);
-      // Save to IndexedDB (fire-and-forget)
+      const rec = { id, prompt: text, model, images: persistedImages, createdAt: Date.now() };
+      setItems((prev) => [{ id, prompt: text, model, images: images }, ...prev]);
       addHistory(rec).catch(() => {});
       setPrompt("");
       setFiles([]);
     } catch (e: unknown) {
       const id = crypto.randomUUID();
-      const message = e instanceof Error ? e.message : "Something went wrong";
-      setItems((prev) => [{ id, prompt: text, images: [], error: message }, ...prev]);
-      // Optionally store failed entry for context
-      addHistory({ id, prompt: text, images: [], error: message, createdAt: Date.now() }).catch(() => {});
+      const message = errorMessage || (e instanceof Error ? e.message : "Something went wrong");
+      setItems((prev) => [{ id, prompt: text, model, images: [], error: message }, ...prev]);
+      addHistory({ id, prompt: text, model, images: [], error: message, createdAt: Date.now() }).catch(
+        () => {}
+      );
     } finally {
       setLoading(false);
     }
@@ -127,7 +167,7 @@ type HistoryItem = {
             const reader = new FileReader();
             reader.onerror = () => reject(reader.error);
             reader.onload = () => {
-              const result = reader.result as string; // data URL
+              const result = reader.result as string;
               const match = result.match(/^data:([^;]+);base64,(.+)$/);
               const mimeType = f.type || (match ? match[1] : "image/png");
               const data = match ? match[2] : "";
@@ -272,6 +312,17 @@ type HistoryItem = {
           </div>
         )}
         <div className="flex flex-wrap items-center gap-3">
+          <label className="text-sm opacity-80">Model</label>
+          <select
+            className="px-2 py-1 rounded-md bg-black/5 dark:bg-white/10"
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+          >
+            <option value="openai/dall-e-3">OpenAI DALL-E 3</option>
+            <option value="openai/gpt-image-1">OpenAI GPT Image 1</option>
+            <option value="google/gemini-2.5-flash-image-preview">Google Gemini 2.5 Flash</option>
+            <option value="google/imagen-4.0-generate-001">Google Imagen 4</option>
+          </select>
           <label className="text-sm opacity-80">Count</label>
           <input
             type="number"
@@ -303,7 +354,10 @@ type HistoryItem = {
       <div className="flex flex-col gap-6">
         {items.map((item) => (
           <div key={item.id} className="rounded-xl border border-black/10 dark:border-white/10 p-4">
-            <div className="mb-2 text-sm opacity-80">Prompt: {item.prompt}</div>
+            <div className="mb-2 text-sm opacity-80">
+              Model: {item.model} <br />
+              Prompt: {item.prompt}
+            </div>
             {item.error ? (
               <div className="text-red-500 text-sm">{item.error}</div>
             ) : (

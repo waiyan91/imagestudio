@@ -9,6 +9,7 @@ export type ImageSize =
 
 export interface GenerateImageParams {
   prompt: string;
+  model: string;
   size?: ImageSize;
   n?: number;
   // Future: negativePrompt, seed, steps, guidance, etc.

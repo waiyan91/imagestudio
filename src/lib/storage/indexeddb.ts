@@ -4,6 +4,7 @@
 export type HistoryRecord = {
   id: string;
   prompt: string;
+  model: string;
   images: { url?: string; b64_json?: string }[];
   error?: string;
   createdAt: number;

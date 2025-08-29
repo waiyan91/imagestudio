@@ -16,9 +16,10 @@ export class OpenAIImageProvider implements ImageProvider {
   async generate(params: GenerateImageParams): Promise<GeneratedImage[]> {
     const size = params.size ?? "1024x1024";
     const n = params.n ?? 1;
+    const model = params.model || "dall-e-3";
 
     const res = await this.client.images.generate({
-      model: "gpt-image-1",
+      model: model,
       prompt: params.prompt,
       size,
       n,

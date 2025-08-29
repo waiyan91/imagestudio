@@ -16,14 +16,12 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const prompt: string = body?.prompt;
-    const sizeInput: unknown = body?.size;
+  // Remove custom sizing: Gemini always generates default square images, ignore body.size
     const nInput: unknown = body?.n;
   const imagesInput: unknown = body?.images;
 
-    const size: ImageSize | undefined =
-      typeof sizeInput === "string" && (ALLOWED_SIZES as readonly string[]).includes(sizeInput)
-        ? (sizeInput as ImageSize)
-        : undefined;
+  // Remove custom sizing: Gemini always generates default square images, do not set size
+  const size: ImageSize | undefined = undefined;
 
     const n: number | undefined =
       typeof nInput === "number" && Number.isFinite(nInput)
@@ -46,7 +44,7 @@ export async function POST(req: NextRequest) {
         })
         .filter((v): v is { mimeType: string; data: string } => Boolean(v))
     : undefined;
-  const result = await provider.generate({ prompt, size, n, images });
+  const result = await provider.generate({ prompt, n, images });
 
     return NextResponse.json({ images: result, provider: provider.name });
   } catch (err: unknown) {

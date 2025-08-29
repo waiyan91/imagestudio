@@ -17,14 +17,15 @@ export class GoogleImageProvider implements ImageProvider {
   }
 
   async generate(params: GenerateImageParams): Promise<GeneratedImage[]> {
-    const prompt = params.prompt;
-    const model = DEFAULT_MODEL;
-    const target = Math.max(1, Math.min(4, params.n ?? 1));
-    const images = params.images ?? [];
-    // Build contents: if images provided, interleave images first then text per docs best-practice
-    // Build contents in the structure expected by the SDK
-    const contents = images.length
-      ? ([
+      const prompt = params.prompt;
+      const model = DEFAULT_MODEL;
+      const target = Math.max(1, Math.min(4, params.n ?? 1));
+      const images = params.images ?? [];
+      // Remove custom sizing: Gemini always generates default square images, ignore params.size
+      // Build contents: if images provided, interleave images first then text per docs best-practice
+      // Build contents in the structure expected by the SDK
+      const contents = images.length
+        ? ([
           ...images.map((img) => ({ inlineData: { mimeType: img.mimeType, data: img.data } })),
           { text: prompt },
         ] as Array<{ inlineData: { mimeType: string; data: string } } | { text: string }>)

@@ -11,6 +11,7 @@ type HistoryItem = {
   error?: string;
 };
 
+export default function ChatUI() {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<HistoryItem[]>([]);
@@ -20,7 +21,6 @@ type HistoryItem = {
   const [enhancePrompt, setEnhancePrompt] = useState(false);
 
   useEffect(() => {
-    // Load last history entries from IndexedDB on mount (best-effort, ignore errors)
     let cancelled = false;
     (async () => {
       try {
@@ -44,10 +44,8 @@ type HistoryItem = {
     if (!text) return;
     setLoading(true);
     try {
-      // If enhancePrompt is checked, call Gemini API to enhance the prompt
       if (enhancePrompt) {
         try {
-          // Replace with your Gemini API endpoint and key
           const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
           const geminiApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + geminiApiKey;
           const geminiRes = await fetch(geminiApiUrl, {
@@ -58,12 +56,11 @@ type HistoryItem = {
             }),
           });
           const geminiJson = await geminiRes.json();
-          // Gemini returns enhanced text in geminiJson.candidates[0].content.parts[0].text
           if (geminiJson?.candidates?.[0]?.content?.parts?.[0]?.text) {
             text = geminiJson.candidates[0].content.parts[0].text;
           }
         } catch (err) {
-          // If Gemini fails, fallback to original prompt
+          // fallback to original prompt
         }
       }
       const res = await fetch("/api/generate", {
@@ -75,7 +72,6 @@ type HistoryItem = {
       if (!res.ok) throw new Error(json?.error || "Request failed");
       const images = json.images as { url?: string; b64_json?: string }[];
       const id = crypto.randomUUID();
-      // For offline storage, ensure any URL images are captured as base64 as well
       const persistedImages: { url?: string; b64_json?: string }[] = await Promise.all(
         images.map(async (img) => {
           if (img.b64_json || !img.url) return img;
@@ -101,7 +97,6 @@ type HistoryItem = {
       );
       const rec = { id, prompt: text, images: persistedImages, createdAt: Date.now() };
       setItems((prev) => [{ id, prompt: text, images: images }, ...prev]);
-      // Save to IndexedDB (fire-and-forget)
       addHistory(rec).catch(() => {});
       setPrompt("");
       setFiles([]);
@@ -109,7 +104,6 @@ type HistoryItem = {
       const id = crypto.randomUUID();
       const message = e instanceof Error ? e.message : "Something went wrong";
       setItems((prev) => [{ id, prompt: text, images: [], error: message }, ...prev]);
-      // Optionally store failed entry for context
       addHistory({ id, prompt: text, images: [], error: message, createdAt: Date.now() }).catch(() => {});
     } finally {
       setLoading(false);
@@ -127,7 +121,7 @@ type HistoryItem = {
             const reader = new FileReader();
             reader.onerror = () => reject(reader.error);
             reader.onload = () => {
-              const result = reader.result as string; // data URL
+              const result = reader.result as string;
               const match = result.match(/^data:([^;]+);base64,(.+)$/);
               const mimeType = f.type || (match ? match[1] : "image/png");
               const data = match ? match[2] : "";

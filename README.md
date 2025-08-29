@@ -1,5 +1,5 @@
 This is an image generation web app (chat-style) built with Next.js. It supports pluggable providers and ships with OpenAI out of the box.
-
+image gen app usign heroku
 ## Setup
 
 1. Create a `.env.local` file in the project root:

@@ -1,4 +1,24 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+This is an image generation web app (chat-style) built with Next.js. It supports pluggable providers and ships with OpenAI out of the box.
+
+## Setup
+
+1. Create a `.env.local` file in the project root:
+
+```
+PROVIDER=openai
+OPENAI_API_KEY=your_openai_key
+# Or for google in the future
+# PROVIDER=google
+# GOOGLE_API_KEY=your_google_key
+```
+
+2. Install dependencies and run the dev server.
+
+## Scripts
+```bash
+npm install
+npm run dev
+```
 
 ## Getting Started
 
@@ -18,7 +38,14 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### API
+
+- POST `/api/generate` with JSON body `{ prompt: string, size?: "256x256"|"512x512"|"1024x1024"|"2048x2048", n?: number }`
+- Responds `{ images: Array<{ url?: string, b64_json?: string }>, provider: string }`
+
+### UI
+
+- Navigate to `/` to use the chat-like UI. Press Cmd+Enter to submit.
 
 ## Learn More
 

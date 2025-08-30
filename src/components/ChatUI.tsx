@@ -355,7 +355,6 @@ export default function ChatUI() {
 
   return (
     <div className="w-full max-w-5xl mx-auto flex flex-col px-2 sm:px-6 py-4 sm:py-8">
-      {loading && <LoadingSpinner />}
       <header className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-0">
         <div className="flex items-center gap-3">
           <TypingEffect text="Image Studio" className="text-2xl sm:text-4xl font-bold text-[var(--accent)] space-mono-bold" />
@@ -672,10 +671,14 @@ export default function ChatUI() {
             disabled={loading}
             className="ml-auto px-8 py-3 bg-[var(--accent)] text-[var(--background)] font-bold text-lg disabled:opacity-50 w-full sm:w-auto border-2 border-[var(--border-color)] shadow-[4px_4px_0px_0px_var(--accent)] active:shadow-none active:translate-x-[4px] active:translate-y-[4px]"
           >
-            {loading
-              ? (operationMode === "edit" ? "Editing…" : "Generating…")
-              : (operationMode === "edit" ? "Edit Image" : "Generate")
-            }
+            {loading ? (
+              <div className="flex items-center justify-center">
+                <div className="retro-spinner !w-6 !h-6 !border-2"></div>
+                <span className="ml-2">{operationMode === "edit" ? "Editing…" : "Generating…"}</span>
+              </div>
+            ) : (
+              operationMode === "edit" ? "Edit Image" : "Generate"
+            )}
           </button>
         </div>
       </div>

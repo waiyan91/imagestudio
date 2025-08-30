@@ -168,7 +168,7 @@ export default function ChatUI() {
         if (quality) formData.append("quality", quality);
         formData.append("response_format", "b64_json");
         
-        files.forEach((file, index) => {
+        files.forEach((file) => {
           const blob = new Blob([Uint8Array.from(atob(file.data), c => c.charCodeAt(0))], { type: file.mimeType });
           formData.append(`image`, blob, file.name);
         });

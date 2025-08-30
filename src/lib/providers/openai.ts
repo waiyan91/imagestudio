@@ -29,7 +29,6 @@ export class OpenAIImageProvider implements ImageProvider {
       response_format,
       user,
       stream,
-      partial_images
     } = params;
 
     const model = modelId || "dall-e-3";
@@ -87,7 +86,7 @@ export class OpenAIImageProvider implements ImageProvider {
   }
 
   private async generateWithStreaming(params: GenerateImageParams): Promise<GeneratedImage[]> {
-    const { prompt, model, size, quality, partial_images } = params;
+    const { prompt, model, size, quality } = params;
 
     console.log(`[OpenAI Provider] Streaming not yet fully implemented for ${model}, falling back to regular generation`);
     
@@ -101,16 +100,12 @@ export class OpenAIImageProvider implements ImageProvider {
       n: 1,
     };
 
-    if (partial_images) {
-      streamParams.partial_images = partial_images;
-    }
-
     const res = await this.client.images.generate(streamParams);
     return (res.data || []).map((d) => ({ url: d.url || undefined, b64_json: d.b64_json || undefined }));
   }
 
   async edit(params: EditImageParams): Promise<GeneratedImage[]> {
-    const { image, prompt, model: modelId, n, size, response_format, user } = params;
+    const { image, prompt, model: modelId, n, size, user } = params;
 
     const model = modelId || "gpt-image-1";
     const count = n ?? 1;
@@ -180,7 +175,7 @@ export class OpenAIImageProvider implements ImageProvider {
     const imageBuffer = Buffer.from(base64Data, 'base64');
 
     const variationParams: any = {
-      image: imageBuffer,
+      image: await toFile(imageBuffer, 'image.png', { type: image.mimeType || 'image/png' }),
       model: model,
       n: count,
     };

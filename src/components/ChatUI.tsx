@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import NextImage from "next/image";
-import { addHistory, getAllHistory, clearHistory as clearDb } from "@/lib/storage/indexeddb";
+import { addHistory, getAllHistory, clearHistory as clearDb, deleteHistory } from "@/lib/storage/indexeddb";
 import { ImageQuality, ImageSize } from "@/lib/providers/types";
 
 type HistoryItem = {
@@ -37,7 +37,7 @@ export default function ChatUI() {
   const supportsQuality = isDalle3;
   const supportsSize = model.startsWith("openai/");
   const supportsCount = !isDalle3 && !model.includes("gpt-image-1");
-  const supportsFiles = !isDalle3;
+  const supportsFiles = model === "openai/gpt-image-1" || model === "google/gemini-2.5-flash-image-preview";
 
   useEffect(() => {
     let cancelled = false;
@@ -266,7 +266,7 @@ export default function ChatUI() {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col gap-6 px-2 sm:px-0">
+    <div className="w-full max-w-4xl mx-auto flex flex-col gap-8 px-2 sm:px-0 py-4">
       <h1 className="text-2xl font-semibold">Image Studio</h1>
       <div className="flex items-center gap-2">
         <button
@@ -277,15 +277,15 @@ export default function ChatUI() {
               setItems([]);
             }
           }}
-          className="text-xs px-2 py-1 rounded bg-black/5 dark:bg-white/10"
+          className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 transition-colors"
         >
           Clear local history
         </button>
         <div className="text-xs opacity-70">(stored only in this browser)</div>
       </div>
-      <div className="flex flex-col gap-3 rounded-xl border border-black/10 dark:border-white/10 p-3 sm:p-4">
+      <div className="flex flex-col gap-4 rounded-xl border border-gray-200/50 dark:border-gray-300/20 p-4 sm:p-6 bg-gray-50/30 dark:bg-gray-900/10">
         <textarea
-          className="w-full min-h-24 max-h-[40vh] p-3 rounded-md bg-black/5 dark:bg-white/10 outline-none resize-y"
+          className="w-full min-h-24 max-h-[40vh] p-4 rounded-md bg-gray-50 dark:bg-gray-900 outline-none resize-y"
           placeholder="Describe the image you want..."
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
@@ -295,21 +295,45 @@ export default function ChatUI() {
         />
         <div className="flex flex-wrap items-center gap-3">
           <label className="text-sm opacity-80">Attach images</label>
+          <label
+            htmlFor="file-upload"
+            className={`px-3 py-1.5 text-sm rounded-md bg-gray-100 dark:bg-gray-800 ${
+              !supportsFiles
+                ? "opacity-50 cursor-not-allowed"
+                : "cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            }`}
+            title={
+              supportsFiles
+                ? "Attach images for editing"
+                : "Select a model that supports image editing to enable this feature."
+            }
+          >
+            Choose Files
+          </label>
           <input
+            id="file-upload"
             type="file"
             accept="image/*"
             multiple
             onChange={onPickFiles}
-            className="text-sm"
+            className="hidden"
             disabled={!supportsFiles}
           />
           {files.length > 0 && (
-            <button
-              onClick={() => setFiles([])}
-              className="ml-auto text-xs px-2 py-1 rounded bg-black/5 dark:bg-white/10"
-            >
-              Clear
-            </button>
+            <>
+              <div
+                className="text-sm opacity-70 truncate max-w-xs"
+                title={files.map((f) => f.name).join(", ")}
+              >
+                {files.map((f) => f.name).join(", ")}
+              </div>
+              <button
+                onClick={() => setFiles([])}
+                className="ml-auto text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 transition-colors"
+              >
+                Clear
+              </button>
+            </>
           )}
         </div>
         {files.length > 0 && (
@@ -328,7 +352,7 @@ export default function ChatUI() {
                     unoptimized
                     width={512}
                     height={512}
-                    className="w-full h-auto rounded-md border border-black/10 dark:border-white/10 object-contain cursor-zoom-in"
+                    className="w-full h-auto rounded-md border border-gray-200/50 dark:border-gray-300/20 object-contain cursor-zoom-in transition-colors"
                   />
                 </button>
                 <div className="mt-1 text-xs opacity-70 truncate">{f.name}</div>
@@ -339,7 +363,7 @@ export default function ChatUI() {
         <div className="flex flex-wrap items-center gap-3">
           <label className="text-sm opacity-80">Model</label>
           <select
-            className="px-2 py-1 rounded-md bg-black/5 dark:bg-white/10"
+            className="px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 outline-none transition-colors"
             value={model}
             onChange={(e) => setModel(e.target.value)}
           >
@@ -353,7 +377,7 @@ export default function ChatUI() {
             <>
               <label className="text-sm opacity-80">Aspect Ratio</label>
               <select
-                className="px-2 py-1 rounded-md bg-black/5 dark:bg-white/10"
+                className="px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 outline-none transition-colors"
                 value={aspectRatio}
                 onChange={(e) => setAspectRatio(e.target.value as AspectRatio)}
               >
@@ -365,7 +389,7 @@ export default function ChatUI() {
               </select>
               <label className="text-sm opacity-80">Image Size</label>
               <select
-                className="px-2 py-1 rounded-md bg-black/5 dark:bg-white/10"
+                className="px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 outline-none transition-colors"
                 value={sampleImageSize}
                 onChange={(e) => setSampleImageSize(e.target.value as SampleImageSize)}
               >
@@ -374,7 +398,7 @@ export default function ChatUI() {
               </select>
               <label className="text-sm opacity-80">Person Generation</label>
               <select
-                className="px-2 py-1 rounded-md bg-black/5 dark:bg-white/10"
+                className="px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 outline-none transition-colors"
                 value={personGeneration}
                 onChange={(e) => setPersonGeneration(e.target.value as PersonGeneration)}
               >
@@ -389,7 +413,7 @@ export default function ChatUI() {
             <>
               <label className="text-sm opacity-80">Size</label>
               <select
-                className="px-2 py-1 rounded-md bg-black/5 dark:bg-white/10"
+                className="px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 outline-none transition-colors"
                 value={size}
                 onChange={(e) => setSize(e.target.value as ImageSize)}
               >
@@ -410,7 +434,7 @@ export default function ChatUI() {
             <>
               <label className="text-sm opacity-80">Quality</label>
               <select
-                className="px-2 py-1 rounded-md bg-black/5 dark:bg-white/10"
+                className="px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 outline-none transition-colors"
                 value={quality}
                 onChange={(e) => setQuality(e.target.value as ImageQuality)}
               >
@@ -426,7 +450,7 @@ export default function ChatUI() {
             min={1}
             max={4}
             disabled={!supportsCount}
-            className="w-16 px-2 py-1 rounded-md bg-black/5 dark:bg-white/10 disabled:opacity-50"
+            className="w-16 px-2 py-1 rounded-md bg-gray-50 dark:bg-gray-900 disabled:opacity-50 outline-none"
             value={n}
             onChange={(e) => setN(Math.max(1, Math.min(4, Number(e.target.value))))}
           />
@@ -435,14 +459,14 @@ export default function ChatUI() {
               type="checkbox"
               checked={enhancePrompt}
               onChange={(e) => setEnhancePrompt(e.target.checked)}
-              className="accent-foreground"
+              className="accent-foreground transition-colors"
             />
             Enhance Prompt
           </label>
           <button
             onClick={submit}
             disabled={loading}
-            className="ml-auto rounded-md px-4 py-2 bg-foreground text-background disabled:opacity-50 w-full sm:w-auto"
+            className="ml-auto rounded-md px-6 py-2 bg-foreground text-background disabled:opacity-50 w-full sm:w-auto transition-colors"
           >
             {loading ? "Generating…" : "Generate"}
           </button>
@@ -451,39 +475,56 @@ export default function ChatUI() {
 
       <div className="flex flex-col gap-6">
         {items.map((item) => (
-          <div key={item.id} className="rounded-xl border border-black/10 dark:border-white/10 p-4">
-            <div className="mb-2 text-sm opacity-80">
-              Model: {item.model} <br />
-              Prompt: {item.prompt}
-            </div>
-            {item.error ? (
-              <div className="text-red-500 text-sm">{item.error}</div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {item.images.map((img, idx) => {
-                  const src = img.url || (img.b64_json ? `data:image/png;base64,${img.b64_json}` : "");
-                  return (
-                    <div key={idx} className="relative w-full">
-                      <button
-                        type="button"
-                        onClick={() => openPreview(src, item.prompt)}
-                        className="block text-left"
-                        aria-label="Preview generated image"
-                      >
-                        <NextImage
-                          src={src}
-                          alt={item.prompt}
-                          unoptimized
-                          width={1024}
-                          height={1024}
-                          className="w-full h-auto rounded-lg border border-black/10 dark:border-white/10 object-contain cursor-zoom-in"
-                        />
-                      </button>
-                    </div>
-                  );
-                })}
+          <div key={item.id} className="rounded-xl border border-gray-200/50 dark:border-gray-300/20 p-4 bg-gray-50/30 dark:bg-gray-900/10">
+            <div className="flex items-start gap-4">
+              <div className="flex-1">
+                <div className="mb-2 text-sm opacity-80">
+                  Model: {item.model} <br />
+                  Prompt: {item.prompt}
+                </div>
+                {item.error ? (
+                  <div className="text-red-500 text-sm">{item.error}</div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {item.images.map((img, idx) => {
+                      const src = img.url || (img.b64_json ? `data:image/png;base64,${img.b64_json}` : "");
+                      return (
+                        <div key={idx} className="relative w-full">
+                          <button
+                            type="button"
+                            onClick={() => openPreview(src, item.prompt)}
+                            className="block text-left"
+                            aria-label="Preview generated image"
+                          >
+                            <NextImage
+                              src={src}
+                              alt={item.prompt}
+                              unoptimized
+                              width={1024}
+                              height={1024}
+                              className="w-full h-auto rounded-lg border border-gray-200/50 dark:border-gray-300/20 object-contain cursor-zoom-in transition-colors"
+                            />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            )}
+              <button
+                type="button"
+                onClick={async () => {
+                  if (window.confirm("Are you sure you want to delete this item?")) {
+                    await deleteHistory(item.id).catch(() => {});
+                    setItems((prev) => prev.filter((i) => i.id !== item.id));
+                  }
+                }}
+                className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 transition-colors"
+                aria-label="Delete item"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         ))}
       </div>
@@ -499,14 +540,14 @@ export default function ChatUI() {
             onClick={closePreview}
             aria-hidden="true"
           />
-          <div className="relative z-10 max-w-[95vw] max-h-[90vh] w-auto bg-background text-foreground rounded-lg shadow-xl border border-black/20 dark:border-white/10 p-3">
+          <div className="relative z-10 max-w-[95vw] max-h-[90vh] w-auto bg-background text-foreground rounded-lg shadow-xl border border-gray-200/50 dark:border-gray-300/20 p-3">
             <div className="flex items-center gap-2 mb-3">
               <div className="text-sm truncate max-w-[60vw]" title={preview.alt}>{preview.alt}</div>
               <div className="ml-auto flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => downloadImage(preview.src, (preview.alt || "image").replace(/\s+/g, "_") + ".png")}
-                  className="px-3 py-1.5 text-sm rounded-md bg-black/10 dark:bg-white/10"
+                  className="px-3 py-1.5 text-sm rounded-md bg-gray-100 dark:bg-gray-800 transition-colors"
                 >
                   Download
                 </button>
@@ -516,14 +557,20 @@ export default function ChatUI() {
                     await addImageToEditing(preview.src, preview.alt || "image.png");
                     closePreview();
                   }}
-                  className="px-3 py-1.5 text-sm rounded-md bg-black/10 dark:bg-white/10"
+                  disabled={!supportsFiles}
+                  title={
+                    supportsFiles
+                      ? "Use this image for editing"
+                      : "Select a model that supports image editing to enable this feature."
+                  }
+                  className="px-3 py-1.5 text-sm rounded-md bg-gray-100 dark:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Use for editing
                 </button>
                 <button
                   type="button"
                   onClick={closePreview}
-                  className="px-3 py-1.5 text-sm rounded-md bg-black/10 dark:bg-white/10"
+                  className="px-3 py-1.5 text-sm rounded-md bg-gray-100 dark:bg-gray-800 transition-colors"
                   aria-label="Close preview"
                 >
                   Close

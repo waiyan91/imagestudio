@@ -45,6 +45,8 @@ export async function POST(req: NextRequest) {
     const userInput: unknown = body?.user;
     const streamInput: unknown = body?.stream;
     const partialImagesInput: unknown = body?.partial_images;
+    const openaiApiKey: string | undefined = body?.openaiApiKey;
+    const googleApiKey: string | undefined = body?.googleApiKey;
 
     const size: ImageSize | undefined =
       typeof sizeInput === "string" && (ALLOWED_SIZES as readonly string[]).includes(sizeInput)
@@ -105,7 +107,8 @@ export async function POST(req: NextRequest) {
     }
 
     const [providerName, modelId] = model.split("/") as [string, string];
-    const provider = getImageProvider(providerName as "openai" | "google");
+    const apiKey = providerName === "openai" ? openaiApiKey : googleApiKey;
+    const provider = getImageProvider(providerName as "openai" | "google", apiKey);
 
     const images = Array.isArray(imagesInput)
       ? imagesInput

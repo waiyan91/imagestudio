@@ -5,11 +5,11 @@ export const env = {
   GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
 };
 
-export function requireEnvForProvider(provider: Provider) {
-  if (provider === "openai" && !env.OPENAI_API_KEY) {
-    throw new Error("Missing OPENAI_API_KEY. Set it in .env.local");
+export function requireEnvForProvider(provider: Provider, apiKey?: string) {
+  if (provider === "openai" && !apiKey && !env.OPENAI_API_KEY) {
+    throw new Error("Missing OpenAI API Key. Please provide one.");
   }
-  if (provider === "google" && !env.GOOGLE_API_KEY) {
-    throw new Error("Missing GOOGLE_API_KEY. Set it in .env.local");
+  if (provider === "google" && !apiKey && !env.GOOGLE_API_KEY) {
+    throw new Error("Missing Google API Key. Please provide one.");
   }
 }

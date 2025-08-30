@@ -6,11 +6,12 @@ export class GoogleImageProvider implements ImageProvider {
   name = "google";
   private client: GoogleGenAI;
 
-  constructor() {
-    if (!env.GOOGLE_API_KEY) {
-      throw new Error("GOOGLE_API_KEY is not set");
+  constructor(apiKey?: string) {
+    const key = apiKey || env.GOOGLE_API_KEY;
+    if (!key) {
+      throw new Error("Google API key is not set");
     }
-    this.client = new GoogleGenAI({ apiKey: env.GOOGLE_API_KEY });
+    this.client = new GoogleGenAI({ apiKey: key });
   }
 
   async generate(params: GenerateImageParams): Promise<GeneratedImage[]> {

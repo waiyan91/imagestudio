@@ -12,11 +12,12 @@ export class OpenAIImageProvider implements ImageProvider {
   name = "openai";
   private client: OpenAI;
 
-  constructor() {
-    if (!env.OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY is not set");
+  constructor(apiKey?: string) {
+    const key = apiKey || env.OPENAI_API_KEY;
+    if (!key) {
+      throw new Error("OpenAI API key is not set");
     }
-    this.client = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+    this.client = new OpenAI({ apiKey: key });
   }
 
   async generate(params: GenerateImageParams): Promise<GeneratedImage[]> {

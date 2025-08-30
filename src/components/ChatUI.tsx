@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
 import NextImage from "next/image";
 import { addHistory, getAllHistory, clearHistory as clearDb, deleteHistory } from "@/lib/storage/indexeddb";
 import { ImageQuality, ImageSize } from "@/lib/providers/types";
@@ -38,6 +37,8 @@ export default function ChatUI() {
   const [operationMode, setOperationMode] = useState<OperationMode>("generate");
   const [showTooltip, setShowTooltip] = useState(false);
   const [showDropzone, setShowDropzone] = useState(false);
+  const [openaiApiKey, setOpenaiApiKey] = useState("");
+  const [googleApiKey, setGoogleApiKey] = useState("");
 
   const isImagen = model.startsWith("google/imagen-4.0");
   const isDalle3 = model.includes("dall-e-3");
@@ -94,6 +95,19 @@ export default function ChatUI() {
     };
   }, []);
 
+  useEffect(() => {
+    const savedOpenaiKey = localStorage.getItem("openai_api_key") || "";
+    const savedGoogleKey = localStorage.getItem("google_api_key") || "";
+    setOpenaiApiKey(savedOpenaiKey);
+    setGoogleApiKey(savedGoogleKey);
+  }, []);
+
+  const saveKeys = () => {
+    localStorage.setItem("openai_api_key", openaiApiKey);
+    localStorage.setItem("google_api_key", googleApiKey);
+    alert("API keys have been saved.");
+  };
+
   const submit = async () => {
     let text = prompt.trim();
     
@@ -112,7 +126,10 @@ export default function ChatUI() {
     try {
       if (enhancePrompt) {
         try {
-          const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+          const geminiApiKey = googleApiKey || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+          if (!geminiApiKey) {
+            throw new Error("Missing Google API key for prompt enhancement.");
+          }
           const geminiApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=" + geminiApiKey;
           const geminiPrompt = `Rewrite the following prompt to be a single, highly descriptive prompt for image generation. Do not provide options or suggestions, just return the enhanced prompt only: ${text}`;
           const geminiRes = await fetch(geminiApiUrl, {
@@ -162,6 +179,8 @@ export default function ChatUI() {
             sampleImageSize: isImagen ? sampleImageSize : undefined,
             personGeneration: isImagen ? personGeneration : undefined,
             images: supportsFiles ? files.map(({ mimeType, data }) => ({ mimeType, data })) : undefined,
+            openaiApiKey: model.startsWith("openai/") ? openaiApiKey : undefined,
+            googleApiKey: model.startsWith("google/") ? googleApiKey : undefined,
           }),
         });
       } else { // edit
@@ -172,6 +191,7 @@ export default function ChatUI() {
         if (size) formData.append("size", size);
         if (quality) formData.append("quality", quality);
         formData.append("response_format", "b64_json");
+        if (openaiApiKey) formData.append("openaiApiKey", openaiApiKey);
         
         files.forEach((file) => {
           const blob = new Blob([Uint8Array.from(atob(file.data), c => c.charCodeAt(0))], { type: file.mimeType });
@@ -378,6 +398,39 @@ export default function ChatUI() {
       </header>
 
       <div className="glassmorphism flex flex-col gap-6 p-4 sm:p-8">
+        {/* API Key Inputs */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium opacity-80 mb-1">OpenAI API Key</label>
+            <input
+              type="password"
+              value={openaiApiKey}
+              onChange={(e) => setOpenaiApiKey(e.target.value)}
+              className="w-full p-2 bg-[var(--input-bg)] placeholder-gray-500 outline-none border-2 border-[var(--border-color)] focus:ring-2 focus:ring-[var(--accent)] text-[var(--foreground)]"
+              placeholder="Enter your OpenAI API key"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium opacity-80 mb-1">Google API Key</label>
+            <input
+              type="password"
+              value={googleApiKey}
+              onChange={(e) => setGoogleApiKey(e.target.value)}
+              className="w-full p-2 bg-[var(--input-bg)] placeholder-gray-500 outline-none border-2 border-[var(--border-color)] focus:ring-2 focus:ring-[var(--accent)] text-[var(--foreground)]"
+              placeholder="Enter your Google API key"
+            />
+          </div>
+        </div>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={saveKeys}
+            className="px-4 py-2 text-sm font-semibold border-2 border-[var(--border-color)] bg-[var(--button-bg)] hover:bg-[var(--button-hover-bg)] shadow-[2px_2px_0px_0px_var(--accent)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] text-[var(--foreground)]"
+          >
+            Save Keys
+          </button>
+        </div>
+
         {/* Operation Mode Selector */}
         <div className="flex flex-wrap items-center gap-4">
           <label className="text-sm font-medium opacity-80">Operation</label>

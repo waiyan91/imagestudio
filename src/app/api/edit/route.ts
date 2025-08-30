@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
     const sizeInput = formData.get("size");
     const responseFormatInput = formData.get("response_format");
     const user = formData.get("user") as string;
+    const openaiApiKey = formData.get("openaiApiKey") as string;
 
     // Handle multiple image files
     const imageFiles: File[] = [];
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
         : undefined;
 
     const [providerName, modelId] = model.split("/") as [string, string];
-    const provider = getImageProvider(providerName as "openai" | "google");
+    const provider = getImageProvider(providerName as "openai" | "google", openaiApiKey);
 
     if (!provider.edit) {
       return NextResponse.json({ error: "Image editing not supported by this provider" }, { status: 400 });

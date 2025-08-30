@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
     const responseFormatInput = formData.get("response_format");
     const user = formData.get("user") as string;
     const imageFile = formData.get("image") as File;
+    const openaiApiKey = formData.get("openaiApiKey") as string;
 
     if (!imageFile || !(imageFile instanceof File)) {
       return NextResponse.json({ error: "Image file is required" }, { status: 400 });
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
       ? model.split("/") as [string, string]
       : ["openai", "dall-e-2"];
 
-    const provider = getImageProvider(providerName as "openai" | "google");
+    const provider = getImageProvider(providerName as "openai" | "google", openaiApiKey);
 
     if (!provider.createVariation) {
       return NextResponse.json({ error: "Image variations not supported by this provider" }, { status: 400 });

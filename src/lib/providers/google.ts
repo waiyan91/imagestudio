@@ -14,25 +14,37 @@ export class GoogleImageProvider implements ImageProvider {
   }
 
   async generate(params: GenerateImageParams): Promise<GeneratedImage[]> {
-    const { prompt, model, n, images } = params;
+    const { prompt, model, n, images, aspectRatio, sampleImageSize, personGeneration } = params;
 
     if (model.startsWith("gemini")) {
       return this.generateWithGemini(prompt, model, n, images);
     } else if (model.startsWith("imagen")) {
-      return this.generateWithImagen(prompt, "imagen-4.0-generate-001", n);
+      return this.generateWithImagen(prompt, model, n, aspectRatio, sampleImageSize, personGeneration);
     } else {
       throw new Error(`Unknown Google model: ${model}`);
     }
   }
 
-  private async generateWithImagen(prompt: string, model: string, n?: number): Promise<GeneratedImage[]> {
+  private async generateWithImagen(
+    prompt: string,
+    model: string,
+    n?: number,
+    aspectRatio?: string,
+    sampleImageSize?: string,
+    personGeneration?: string
+  ): Promise<GeneratedImage[]> {
     const target = Math.max(1, Math.min(4, n ?? 1));
+    const config: any = {
+      numberOfImages: target,
+    };
+    if (aspectRatio) config.aspectRatio = aspectRatio;
+    if (sampleImageSize) config.sampleImageSize = sampleImageSize;
+    if (personGeneration) config.personGeneration = personGeneration;
+
     const response = await this.client.models.generateImages({
       model: model,
       prompt: prompt,
-      config: {
-        numberOfImages: target,
-      },
+      config,
     });
 
     return (response.generatedImages || []).map((img) => ({

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import NextImage from "next/image";
 import { addHistory, getAllHistory, clearHistory as clearDb } from "@/lib/storage/indexeddb";
+import { ImageQuality, ImageSize } from "@/lib/providers/types";
 
 type HistoryItem = {
   id: string;
@@ -21,6 +22,18 @@ export default function ChatUI() {
   const [preview, setPreview] = useState<{ src: string; alt: string } | null>(null);
   const [enhancePrompt, setEnhancePrompt] = useState(false);
   const [model, setModel] = useState("openai/dall-e-3");
+  const [size, setSize] = useState<ImageSize>("1024x1024");
+  const [quality, setQuality] = useState<ImageQuality>("standard");
+  const [aspectRatio, setAspectRatio] = useState<any>("1:1");
+  const [sampleImageSize, setSampleImageSize] = useState<any>("1K");
+  const [personGeneration, setPersonGeneration] = useState<any>("allow_adult");
+
+  const isImagen = model.startsWith("google/imagen");
+  const isDalle3 = model.includes("dall-e-3");
+  const supportsQuality = isDalle3;
+  const supportsSize = model.startsWith("openai/");
+  const supportsCount = !isDalle3 && !model.includes("gpt-image-1");
+  const supportsFiles = !isDalle3;
 
   useEffect(() => {
     let cancelled = false;
@@ -94,9 +107,14 @@ export default function ChatUI() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: text,
-          n,
+          n: supportsCount ? n : 1,
           model,
-          images: files.map(({ mimeType, data }) => ({ mimeType, data })),
+          size: supportsSize ? size : undefined,
+          quality: supportsQuality ? quality : undefined,
+          aspectRatio: isImagen ? aspectRatio : undefined,
+          sampleImageSize: isImagen ? sampleImageSize : undefined,
+          personGeneration: isImagen ? personGeneration : undefined,
+          images: supportsFiles ? files.map(({ mimeType, data }) => ({ mimeType, data })) : undefined,
         }),
       });
       let json;
@@ -250,8 +268,10 @@ export default function ChatUI() {
         <button
           type="button"
           onClick={async () => {
-            await clearDb().catch(() => {});
-            setItems([]);
+            if (window.confirm("Are you sure you want to clear the local history?")) {
+              await clearDb().catch(() => {});
+              setItems([]);
+            }
           }}
           className="text-xs px-2 py-1 rounded bg-black/5 dark:bg-white/10"
         >
@@ -277,6 +297,7 @@ export default function ChatUI() {
             multiple
             onChange={onPickFiles}
             className="text-sm"
+            disabled={!supportsFiles}
           />
           {files.length > 0 && (
             <button
@@ -323,12 +344,85 @@ export default function ChatUI() {
             <option value="google/gemini-2.5-flash-image-preview">Google Gemini 2.5 Flash</option>
             <option value="google/imagen-4.0-generate-001">Google Imagen 4</option>
           </select>
+
+          {isImagen && (
+            <>
+              <label className="text-sm opacity-80">Aspect Ratio</label>
+              <select
+                className="px-2 py-1 rounded-md bg-black/5 dark:bg-white/10"
+                value={aspectRatio}
+                onChange={(e) => setAspectRatio(e.target.value)}
+              >
+                <option value="1:1">1:1</option>
+                <option value="3:4">3:4</option>
+                <option value="4:3">4:3</option>
+                <option value="9:16">9:16</option>
+                <option value="16:9">16:9</option>
+              </select>
+              <label className="text-sm opacity-80">Image Size</label>
+              <select
+                className="px-2 py-1 rounded-md bg-black/5 dark:bg-white/10"
+                value={sampleImageSize}
+                onChange={(e) => setSampleImageSize(e.target.value)}
+              >
+                <option value="1K">1K</option>
+                <option value="2K">2K</option>
+              </select>
+              <label className="text-sm opacity-80">Person Generation</label>
+              <select
+                className="px-2 py-1 rounded-md bg-black/5 dark:bg-white/10"
+                value={personGeneration}
+                onChange={(e) => setPersonGeneration(e.target.value)}
+              >
+                <option value="dont_allow">Don't Allow</option>
+                <option value="allow_adult">Allow Adults</option>
+                <option value="allow_all">Allow All</option>
+              </select>
+            </>
+          )}
+
+          {supportsSize && (
+            <>
+              <label className="text-sm opacity-80">Size</label>
+              <select
+                className="px-2 py-1 rounded-md bg-black/5 dark:bg-white/10"
+                value={size}
+                onChange={(e) => setSize(e.target.value as ImageSize)}
+              >
+                <option value="1024x1024">1024x1024</option>
+                <option value="1024x1792">1024x1792</option>
+                <option value="1792x1024">1792x1024</option>
+                {model.includes("dall-e-2") && (
+                  <>
+                    <option value="256x256">256x256</option>
+                    <option value="512x512">512x512</option>
+                  </>
+                )}
+              </select>
+            </>
+          )}
+
+          {supportsQuality && (
+            <>
+              <label className="text-sm opacity-80">Quality</label>
+              <select
+                className="px-2 py-1 rounded-md bg-black/5 dark:bg-white/10"
+                value={quality}
+                onChange={(e) => setQuality(e.target.value as ImageQuality)}
+              >
+                <option value="standard">Standard</option>
+                <option value="hd">HD</option>
+              </select>
+            </>
+          )}
+
           <label className="text-sm opacity-80">Count</label>
           <input
             type="number"
             min={1}
             max={4}
-            className="w-16 px-2 py-1 rounded-md bg-black/5 dark:bg-white/10"
+            disabled={!supportsCount}
+            className="w-16 px-2 py-1 rounded-md bg-black/5 dark:bg-white/10 disabled:opacity-50"
             value={n}
             onChange={(e) => setN(Math.max(1, Math.min(4, Number(e.target.value))))}
           />

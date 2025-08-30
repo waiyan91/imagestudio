@@ -378,7 +378,7 @@ export default function ChatUI() {
                 value={personGeneration}
                 onChange={(e) => setPersonGeneration(e.target.value as PersonGeneration)}
               >
-                <option value="dont_allow">Don't Allow</option>
+                <option value="dont_allow">Don&apos;t Allow</option>
                 <option value="allow_adult">Allow Adults</option>
                 <option value="allow_all">Allow All</option>
               </select>

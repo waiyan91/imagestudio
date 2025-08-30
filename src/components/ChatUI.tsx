@@ -31,7 +31,7 @@ export default function ChatUI() {
   const [enhancePrompt, setEnhancePrompt] = useState(false);
   const [model, setModel] = useState("openai/dall-e-3");
   const [size, setSize] = useState<ImageSize>("1024x1024");
-  const [quality, setQuality] = useState<ImageQuality>("standard");
+  const [quality, setQuality] = useState<ImageQuality>("low");
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>("1:1");
   const [sampleImageSize, setSampleImageSize] = useState<SampleImageSize>("1K");
   const [personGeneration, setPersonGeneration] = useState<PersonGeneration>("allow_adult");
@@ -54,7 +54,7 @@ export default function ChatUI() {
   // Auto-adjust quality when switching models
   useEffect(() => {
     if (isGptImage && (quality === "standard" || quality === "hd")) {
-      setQuality("auto");
+      setQuality("low");
     } else if (isDalle3 && (quality === "auto" || quality === "low" || quality === "medium" || quality === "high")) {
       setQuality("standard");
     }

@@ -42,7 +42,7 @@ export class OpenAIImageProvider implements ImageProvider {
     // Determine appropriate default quality based on model
     let defaultQuality: "standard" | "hd" | "auto" | "low" | "medium" | "high";
     if (model === "gpt-image-1") {
-      defaultQuality = "auto"; // gpt-image-1 supports: low, medium, high, auto
+      defaultQuality = "low"; // gpt-image-1 supports: low, medium, high, auto
     } else if (model === "dall-e-3") {
       defaultQuality = "standard"; // dall-e-3 supports: standard, hd
     } else {
@@ -93,7 +93,7 @@ export class OpenAIImageProvider implements ImageProvider {
       model: model || "gpt-image-1",
       prompt: prompt,
       size: size ?? "1024x1024",
-      quality: quality ?? "auto",
+      quality: quality ?? "low",
       n: 1,
     };
 

@@ -266,41 +266,44 @@ export default function ChatUI() {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col gap-8 px-2 sm:px-0 py-4">
-      <h1 className="text-2xl font-semibold">Image Studio</h1>
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={async () => {
-            if (window.confirm("Are you sure you want to clear the local history?")) {
-              await clearDb().catch(() => {});
-              setItems([]);
-            }
-          }}
-          className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 transition-colors"
-        >
-          Clear local history
-        </button>
-        <div className="text-xs opacity-70">(stored only in this browser)</div>
-      </div>
-      <div className="flex flex-col gap-4 rounded-xl border border-gray-200/50 dark:border-gray-300/20 p-4 sm:p-6 bg-gray-50/30 dark:bg-gray-900/10">
+    <div className="w-full max-w-5xl mx-auto flex flex-col gap-12 px-4 sm:px-6 py-8">
+      <header className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tighter text-cyan-400">Image Studio</h1>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={async () => {
+              if (window.confirm("Are you sure you want to clear the local history?")) {
+                await clearDb().catch(() => {});
+                setItems([]);
+              }
+            }}
+            className="text-xs px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+          >
+            Clear History
+          </button>
+          <div className="text-xs opacity-50">(stored locally)</div>
+        </div>
+      </header>
+
+      <div className="glassmorphism flex flex-col gap-6 p-6 sm:p-8">
         <textarea
-          className="w-full min-h-24 max-h-[40vh] p-4 rounded-md bg-gray-50 dark:bg-gray-900 outline-none resize-y"
-          placeholder="Describe the image you want..."
+          className="w-full min-h-28 max-h-[40vh] p-4 rounded-lg bg-[var(--input-bg)] text-lg placeholder-gray-500 outline-none resize-y focus:ring-2 focus:ring-cyan-400"
+          placeholder="Describe the image you want to create..."
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={(e) => {
             if ((e.metaKey || e.ctrlKey) && e.key === "Enter") submit();
           }}
         />
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="text-sm opacity-80">Attach images</label>
+        <div className="flex flex-wrap items-center gap-4">
+          <label className="text-sm font-medium opacity-80">Attach images</label>
           <label
             htmlFor="file-upload"
-            className={`px-3 py-1.5 text-sm rounded-md bg-gray-100 dark:bg-gray-800 ${
+            className={`px-4 py-2 text-sm font-semibold rounded-lg ${
               !supportsFiles
-                ? "opacity-50 cursor-not-allowed"
-                : "cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                ? "opacity-50 cursor-not-allowed bg-gray-700"
+                : "cursor-pointer bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 transition-colors"
             }`}
             title={
               supportsFiles
@@ -329,7 +332,7 @@ export default function ChatUI() {
               </div>
               <button
                 onClick={() => setFiles([])}
-                className="ml-auto text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 transition-colors"
+                className="ml-auto text-xs px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
               >
                 Clear
               </button>
@@ -337,9 +340,9 @@ export default function ChatUI() {
           )}
         </div>
         {files.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {files.map((f, i) => (
-              <div key={i} className="relative w-full">
+              <div key={i} className="relative w-full group">
                 <button
                   type="button"
                   onClick={() => openPreview(`data:${f.mimeType};base64,${f.data}`, f.name)}
@@ -352,18 +355,18 @@ export default function ChatUI() {
                     unoptimized
                     width={512}
                     height={512}
-                    className="w-full h-auto rounded-md border border-gray-200/50 dark:border-gray-300/20 object-contain cursor-zoom-in transition-colors"
+                    className="w-full h-auto rounded-lg border-2 border-transparent group-hover:border-cyan-400 transition-all object-contain cursor-zoom-in"
                   />
                 </button>
-                <div className="mt-1 text-xs opacity-70 truncate">{f.name}</div>
+                <div className="mt-2 text-xs opacity-70 truncate">{f.name}</div>
               </div>
             ))}
           </div>
         )}
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="text-sm opacity-80">Model</label>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
+          <label className="text-sm font-medium opacity-80">Model</label>
           <select
-            className="px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 outline-none transition-colors"
+            className="px-3 py-2 rounded-lg bg-[var(--input-bg)] outline-none focus:ring-2 focus:ring-cyan-400"
             value={model}
             onChange={(e) => setModel(e.target.value)}
           >
@@ -375,9 +378,9 @@ export default function ChatUI() {
 
           {isImagen && (
             <>
-              <label className="text-sm opacity-80">Aspect Ratio</label>
+              <label className="text-sm font-medium opacity-80">Aspect Ratio</label>
               <select
-                className="px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 outline-none transition-colors"
+                className="px-3 py-2 rounded-lg bg-[var(--input-bg)] outline-none focus:ring-2 focus:ring-cyan-400"
                 value={aspectRatio}
                 onChange={(e) => setAspectRatio(e.target.value as AspectRatio)}
               >
@@ -387,22 +390,22 @@ export default function ChatUI() {
                 <option value="9:16">9:16</option>
                 <option value="16:9">16:9</option>
               </select>
-              <label className="text-sm opacity-80">Image Size</label>
+              <label className="text-sm font-medium opacity-80">Image Size</label>
               <select
-                className="px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 outline-none transition-colors"
+                className="px-3 py-2 rounded-lg bg-[var(--input-bg)] outline-none focus:ring-2 focus:ring-cyan-400"
                 value={sampleImageSize}
                 onChange={(e) => setSampleImageSize(e.target.value as SampleImageSize)}
               >
                 <option value="1K">1K</option>
                 <option value="2K">2K</option>
               </select>
-              <label className="text-sm opacity-80">Person Generation</label>
+              <label className="text-sm font-medium opacity-80">Person Generation</label>
               <select
-                className="px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 outline-none transition-colors"
+                className="px-3 py-2 rounded-lg bg-[var(--input-bg)] outline-none focus:ring-2 focus:ring-cyan-400"
                 value={personGeneration}
                 onChange={(e) => setPersonGeneration(e.target.value as PersonGeneration)}
               >
-                <option value="dont_allow">Don&apos;t Allow</option>
+                <option value="dont_allow">Don't Allow</option>
                 <option value="allow_adult">Allow Adults</option>
                 <option value="allow_all">Allow All</option>
               </select>
@@ -411,9 +414,9 @@ export default function ChatUI() {
 
           {supportsSize && (
             <>
-              <label className="text-sm opacity-80">Size</label>
+              <label className="text-sm font-medium opacity-80">Size</label>
               <select
-                className="px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 outline-none transition-colors"
+                className="px-3 py-2 rounded-lg bg-[var(--input-bg)] outline-none focus:ring-2 focus:ring-cyan-400"
                 value={size}
                 onChange={(e) => setSize(e.target.value as ImageSize)}
               >
@@ -432,9 +435,9 @@ export default function ChatUI() {
 
           {supportsQuality && (
             <>
-              <label className="text-sm opacity-80">Quality</label>
+              <label className="text-sm font-medium opacity-80">Quality</label>
               <select
-                className="px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-900 outline-none transition-colors"
+                className="px-3 py-2 rounded-lg bg-[var(--input-bg)] outline-none focus:ring-2 focus:ring-cyan-400"
                 value={quality}
                 onChange={(e) => setQuality(e.target.value as ImageQuality)}
               >
@@ -444,52 +447,52 @@ export default function ChatUI() {
             </>
           )}
 
-          <label className="text-sm opacity-80">Count</label>
+          <label className="text-sm font-medium opacity-80">Count</label>
           <input
             type="number"
             min={1}
             max={4}
             disabled={!supportsCount}
-            className="w-16 px-2 py-1 rounded-md bg-gray-50 dark:bg-gray-900 disabled:opacity-50 outline-none"
+            className="w-20 px-3 py-2 rounded-lg bg-[var(--input-bg)] disabled:opacity-50 outline-none focus:ring-2 focus:ring-cyan-400"
             value={n}
             onChange={(e) => setN(Math.max(1, Math.min(4, Number(e.target.value))))}
           />
-          <label className="flex items-center gap-2 text-sm opacity-80">
+          <label className="flex items-center gap-2 text-sm font-medium opacity-80 cursor-pointer">
             <input
               type="checkbox"
               checked={enhancePrompt}
               onChange={(e) => setEnhancePrompt(e.target.checked)}
-              className="accent-foreground transition-colors"
+              className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-cyan-400 focus:ring-cyan-400"
             />
             Enhance Prompt
           </label>
           <button
             onClick={submit}
             disabled={loading}
-            className="ml-auto rounded-md px-6 py-2 bg-foreground text-background disabled:opacity-50 w-full sm:w-auto transition-colors"
+            className="ml-auto rounded-lg px-8 py-3 bg-cyan-500 text-black font-bold text-lg disabled:opacity-50 w-full sm:w-auto hover:bg-cyan-400 transition-all transform hover:scale-105"
           >
             {loading ? "Generating…" : "Generate"}
           </button>
         </div>
       </div>
 
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-8">
         {items.map((item) => (
-          <div key={item.id} className="rounded-xl border border-gray-200/50 dark:border-gray-300/20 p-4 bg-gray-50/30 dark:bg-gray-900/10">
-            <div className="flex items-start gap-4">
+          <div key={item.id} className="glassmorphism p-6">
+            <div className="flex items-start gap-6">
               <div className="flex-1">
-                <div className="mb-2 text-sm opacity-80">
-                  Model: {item.model} <br />
-                  Prompt: {item.prompt}
+                <div className="mb-4 text-sm opacity-70 leading-relaxed">
+                  <span className="font-semibold text-cyan-400">Model:</span> {item.model} <br />
+                  <span className="font-semibold text-cyan-400">Prompt:</span> {item.prompt}
                 </div>
                 {item.error ? (
-                  <div className="text-red-500 text-sm">{item.error}</div>
+                  <div className="text-red-400 text-sm p-4 bg-red-500/10 rounded-lg">{item.error}</div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {item.images.map((img, idx) => {
                       const src = img.url || (img.b64_json ? `data:image/png;base64,${img.b64_json}` : "");
                       return (
-                        <div key={idx} className="relative w-full">
+                        <div key={idx} className="relative w-full group">
                           <button
                             type="button"
                             onClick={() => openPreview(src, item.prompt)}
@@ -502,7 +505,7 @@ export default function ChatUI() {
                               unoptimized
                               width={1024}
                               height={1024}
-                              className="w-full h-auto rounded-lg border border-gray-200/50 dark:border-gray-300/20 object-contain cursor-zoom-in transition-colors"
+                              className="w-full h-auto rounded-lg border-2 border-transparent group-hover:border-cyan-400 transition-all object-contain cursor-zoom-in"
                             />
                           </button>
                         </div>
@@ -519,7 +522,7 @@ export default function ChatUI() {
                     setItems((prev) => prev.filter((i) => i.id !== item.id));
                   }
                 }}
-                className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 transition-colors"
+                className="text-xs px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
                 aria-label="Delete item"
               >
                 Delete
@@ -533,21 +536,21 @@ export default function ChatUI() {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
         >
           <div
-            className="absolute inset-0 bg-black/70"
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
             onClick={closePreview}
             aria-hidden="true"
           />
-          <div className="relative z-10 max-w-[95vw] max-h-[90vh] w-auto bg-background text-foreground rounded-lg shadow-xl border border-gray-200/50 dark:border-gray-300/20 p-3">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="text-sm truncate max-w-[60vw]" title={preview.alt}>{preview.alt}</div>
-              <div className="ml-auto flex items-center gap-2">
+          <div className="glassmorphism relative z-10 max-w-4xl max-h-[90vh] w-full bg-[var(--background)] text-foreground rounded-2xl shadow-2xl p-4">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="text-sm font-medium truncate flex-1" title={preview.alt}>{preview.alt}</div>
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => downloadImage(preview.src, (preview.alt || "image").replace(/\s+/g, "_") + ".png")}
-                  className="px-3 py-1.5 text-sm rounded-md bg-gray-100 dark:bg-gray-800 transition-colors"
+                  className="px-4 py-2 text-sm font-semibold rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 transition-colors"
                 >
                   Download
                 </button>
@@ -563,27 +566,27 @@ export default function ChatUI() {
                       ? "Use this image for editing"
                       : "Select a model that supports image editing to enable this feature."
                   }
-                  className="px-3 py-1.5 text-sm rounded-md bg-gray-100 dark:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 text-sm font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 transition-colors"
                 >
                   Use for editing
                 </button>
                 <button
                   type="button"
                   onClick={closePreview}
-                  className="px-3 py-1.5 text-sm rounded-md bg-gray-100 dark:bg-gray-800 transition-colors"
+                  className="px-4 py-2 text-sm rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
                   aria-label="Close preview"
                 >
                   Close
                 </button>
               </div>
             </div>
-            <div className="overflow-auto max-h-[75vh]">
+            <div className="overflow-auto max-h-[75vh] flex justify-center items-center">
               {/* Use a plain img to avoid Next.js layout constraints in a modal */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={preview.src}
                 alt={preview.alt}
-                className="max-w-[90vw] max-h-[75vh] w-auto h-auto object-contain rounded"
+                className="max-w-full max-h-full w-auto h-auto object-contain rounded-lg"
               />
             </div>
           </div>

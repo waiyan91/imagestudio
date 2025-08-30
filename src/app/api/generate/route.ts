@@ -18,7 +18,7 @@ const ALLOWED_SIZES = [
   "1792x1024",
 ] as const satisfies Readonly<ImageSize[]>;
 
-const ALLOWED_QUALITIES = ["standard", "hd"] as const satisfies Readonly<ImageQuality[]>;
+const ALLOWED_QUALITIES = ["standard", "hd", "auto", "low", "medium", "high"] as const satisfies Readonly<ImageQuality[]>;
 const ALLOWED_ASPECT_RATIOS = ["1:1", "3:4", "4:3", "9:16", "16:9"] as const satisfies Readonly<
   ImagenAspectRatio[]
 >;

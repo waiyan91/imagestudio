@@ -24,11 +24,24 @@ export class OpenAIImageProvider implements ImageProvider {
       throw new Error("DALL-E 3 only supports generating 1 image at a time.");
     }
 
+    // Determine appropriate default quality based on model
+    let defaultQuality: "standard" | "hd" | "auto" | "low" | "medium" | "high";
+    if (model === "gpt-image-1") {
+      defaultQuality = "auto"; // gpt-image-1 supports: low, medium, high, auto
+    } else if (model === "dall-e-3") {
+      defaultQuality = "standard"; // dall-e-3 supports: standard, hd
+    } else {
+      defaultQuality = "standard"; // dall-e-2 supports: standard
+    }
+
+    const finalQuality = quality ?? defaultQuality;
+    console.log(`[OpenAI Provider] Using model: ${model}, quality: ${finalQuality}`);
+
     const res = await this.client.images.generate({
       model: model,
       prompt: prompt,
       size: size ?? "1024x1024",
-      quality: quality ?? "standard",
+      quality: finalQuality,
       n: count,
     });
 

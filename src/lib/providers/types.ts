@@ -7,7 +7,7 @@ export type ImageSize =
   | "1792x1024"
   | "1024x1792";
 
-export type ImageQuality = "standard" | "hd";
+export type ImageQuality = "standard" | "hd" | "auto" | "low" | "medium" | "high";
 
 export type ImagenAspectRatio = "1:1" | "3:4" | "4:3" | "9:16" | "16:9";
 export type ImagenSampleImageSize = "1K" | "2K";

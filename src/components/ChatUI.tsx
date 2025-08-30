@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import NextImage from "next/image";
 import { addHistory, getAllHistory, clearHistory as clearDb, deleteHistory } from "@/lib/storage/indexeddb";
 import { ImageQuality, ImageSize } from "@/lib/providers/types";
 import icon from "../icon.png";
-import LoadingSpinner from "./LoadingSpinner";
 import TypingEffect from "./TypingEffect";
 
 type HistoryItem = {

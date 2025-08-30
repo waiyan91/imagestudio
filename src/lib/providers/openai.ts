@@ -57,7 +57,6 @@ export class OpenAIImageProvider implements ImageProvider {
     if (model === "gpt-image-1" && finalQuality === "hd") {
       finalQuality = "high"; // Convert invalid "hd" to "high" for gpt-image-1
     }
-    console.log(`[OpenAI Provider] Using model: ${model}, quality: ${finalQuality}`);
 
     // Handle streaming for gpt-image-1
     if (stream && model === "gpt-image-1") {
@@ -88,8 +87,6 @@ export class OpenAIImageProvider implements ImageProvider {
   private async generateWithStreaming(params: GenerateImageParams): Promise<GeneratedImage[]> {
     const { prompt, model, size, quality } = params;
 
-    console.log(`[OpenAI Provider] Streaming not yet fully implemented for ${model}, falling back to regular generation`);
-    
     // For now, fall back to regular generation
     // TODO: Implement proper streaming when OpenAI Node.js client supports it
     const streamParams: any = {
@@ -109,8 +106,6 @@ export class OpenAIImageProvider implements ImageProvider {
 
     const model = modelId || "gpt-image-1";
     const count = n ?? 1;
-
-    console.log(`[OpenAI Provider] Editing image with model: ${model} using images.edit API`);
 
     // Only GPT Image 1 supports editing
     if (model !== "gpt-image-1") {
@@ -167,8 +162,6 @@ export class OpenAIImageProvider implements ImageProvider {
     if (count < 1 || count > 10) {
       throw new Error("Number of variations must be between 1 and 10 for DALL-E 2.");
     }
-
-    console.log(`[OpenAI Provider] Creating ${count} variation(s) with model: ${model}`);
 
     // Convert base64 to buffer
     const base64Data = image.data.includes(',') ? image.data.split(',')[1] : image.data;

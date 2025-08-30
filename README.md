@@ -1,6 +1,6 @@
 # Image Studio
 
-Image Studio is a web-based application for generating and editing images using various AI models. It provides a user-friendly chat-style interface to interact with state-of-the-art image generation models from OpenAI and Google.
+Image Studio is a client-side web application for generating and editing images using various AI models. It provides a user-friendly chat-style interface to interact with state-of-the-art image generation models from OpenAI and Google. This application is designed for static hosting and can be deployed to platforms like Netlify without requiring a backend server.
 
 ## Features
 
@@ -11,6 +11,18 @@ Image Studio is a web-based application for generating and editing images using 
 - **Customizable Outputs:** Control parameters like image size, quality, and aspect ratio.
 - **Local History:** Your generation history is saved in your browser for easy access.
 - **API Key Management:** Securely save your API keys in the browser's local storage.
+
+## Screenshots
+
+### Application Interface
+![Application Interface](docs/screenshots/Screenshot%202025-08-31%20at%201.29.40%E2%80%AFAM.png)
+*Main application interface with API key input and model selection*
+
+![Model Configuration](docs/screenshots/Screenshot%202025-08-31%20at%201.30.12%E2%80%AFAM.png)
+*Model configuration and operation mode selection*
+
+![Image Generation](docs/screenshots/Screenshot%202025-08-31%20at%201.30.21%E2%80%AFAM.png)
+*Image generation interface with prompt input and parameters*
 
 ## Supported Models
 
@@ -25,6 +37,11 @@ Image Studio is a web-based application for generating and editing images using 
 - Imagen 4 Fast
 
 ## Getting Started
+
+⚠️ **Important Notes:**
+- **No Authentication Required:** Password protection has been completely removed - the application is publicly accessible
+- **API Keys Required:** You must provide your own OpenAI and/or Google API keys to use the application
+- **Browser-Based:** All data is stored locally in your browser
 
 To get a local copy up and running, follow these simple steps.
 
@@ -51,23 +68,18 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ## Configuration
 
-This application requires API keys for the AI models you wish to use.
+This application requires API keys for the AI models you wish to use. API keys are entered directly in the application and stored in your browser's local storage.
 
 1. **Obtain API Keys:**
-   - Get an [OpenAI API key](https://platform.openai.com/account/api-keys).
-   - Get a [Google API key](https://makersuite.google.com/app/apikey).
+    - Get an [OpenAI API key](https://platform.openai.com/account/api-keys)
+    - Get a [Google API key](https://makersuite.google.com/app/apikey)
 
 2. **Enter Keys in the UI:**
-   - Open the application in your browser.
-   - Enter your OpenAI and/or Google API keys in the respective input fields at the top of the page.
-   - Click "Save Keys" to store them in your browser's local storage.
+    - Open the application in your browser
+    - Enter your OpenAI and/or Google API keys in the respective input fields at the top of the page
+    - Click "Save Keys" to store them securely in your browser's local storage
 
-Alternatively, you can set the following environment variables in a `.env.local` file in the project root:
-
-```
-OPENAI_API_KEY=your_openai_key
-GOOGLE_API_KEY=your_google_key
-```
+**Note:** No environment variables are needed for this static deployment. All API calls are made directly from the browser to the respective AI services.
 
 ## Usage
 
@@ -88,43 +100,48 @@ The application has two main modes of operation: "Generate" and "Edit".
 3. Enter a text prompt describing the changes you want to make.
 4. Click "Edit Image".
 
-## API Endpoints
+## Architecture
 
-### `POST /api/generate`
-Generates an image based on a prompt.
+This application is built as a **static website** with no backend server:
 
-**Request Body:**
-```json
-{
-  "prompt": "string",
-  "model": "string",
-  "n": "number" (optional),
-  "size": "string" (optional),
-  "quality": "string" (optional),
-  "aspectRatio": "string" (optional),
-  "sampleImageSize": "string" (optional),
-  "personGeneration": "string" (optional),
-  "images": "Array<{ mimeType: string, data: string }>" (optional),
-  "openaiApiKey": "string" (optional),
-  "googleApiKey": "string" (optional)
-}
-```
+- **Client-Side Only:** All AI API calls are made directly from the browser
+- **Local Storage:** Image generation history is stored in browser IndexedDB
+- **Static Export:** Built as static HTML/CSS/JS files for optimal performance
+- **No Server Costs:** Can be hosted on any static hosting service
 
-### `POST /api/edit`
-Edits an image based on a prompt. This endpoint accepts `multipart/form-data`.
+## Deployment
 
-**Form Data:**
-- `prompt`: (string) The instructions for editing.
-- `model`: (string) The model to use.
-- `image`: (File) The image to edit.
-- `n`: (number, optional) The number of images to generate.
-- `size`: (string, optional) The size of the output image.
-- `quality`: (string, optional) The quality of the output image.
-- `openaiApiKey`: (string, optional) Your OpenAI API key.
+This application can be deployed as a static website to any static hosting service. Here are instructions for popular platforms:
 
-## Deploy on Vercel
+### Netlify (Recommended)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. **Connect Repository:** Connect your GitHub/GitLab repository to Netlify
+2. **Build Settings:**
+   - Build Command: `npm run build`
+   - Publish Directory: `out`
+3. **Deploy:** Netlify will automatically build and deploy your application
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Vercel
+
+1. **Connect Repository:** Connect your GitHub repository to Vercel
+2. **Configure Build:**
+   - Framework Preset: Next.js
+   - Build Command: `npm run build`
+3. **Deploy:** Vercel will automatically build and deploy your application
+
+### Other Platforms
+
+This static application can also be deployed to:
+- GitHub Pages
+- Cloudflare Pages
+- AWS S3 + CloudFront
+- Any other static hosting service
+
+Simply build the application with `npm run build` and upload the contents of the `out` directory.
+
+## Recent Changes
+
+- ✅ **Removed Password Protection:** Application is now publicly accessible without authentication
+- ✅ **Client-Side Only:** No backend server required - all API calls happen in the browser
+- ✅ **Static Export:** Application builds to static files for optimal performance
+- ✅ **Netlify Compatible:** Easy deployment to static hosting services

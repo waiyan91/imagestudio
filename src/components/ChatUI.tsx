@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import NextImage from "next/image";
 import { addHistory, getAllHistory, clearHistory as clearDb, deleteHistory } from "@/lib/storage/indexeddb";
-import { ImageQuality, ImageSize } from "@/lib/providers/types";
+import { ImageQuality, ImageSize } from "@/lib/client-api";
+import { createImageClient, type GeneratedImage } from "@/lib/client-api";
 import icon from "../icon.png";
 import TypingEffect from "./TypingEffect";
 
@@ -126,7 +127,8 @@ export default function ChatUI() {
     try {
       if (enhancePrompt) {
         try {
-          const geminiApiKey = googleApiKey || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+          // Enhanced prompt using Google Gemini API directly
+          const geminiApiKey = googleApiKey;
           if (!geminiApiKey) {
             throw new Error("Missing Google API key for prompt enhancement.");
           }
@@ -164,64 +166,48 @@ export default function ChatUI() {
         }
       }
       
-      let res;
+      // Get API key and provider
+      const [providerName] = model.split("/");
+      const apiKey = providerName === "openai" ? openaiApiKey : googleApiKey;
+      if (!apiKey) {
+        errorMessage = `Missing ${providerName === "openai" ? "OpenAI" : "Google"} API key`;
+        throw new Error(errorMessage);
+      }
+
+      const client = createImageClient(providerName as "openai" | "google", apiKey);
+      let result: GeneratedImage[] = [];
+
       if (operationMode === "generate") {
-        res = await fetch("/api/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            prompt: text,
-            n: supportsCount ? n : 1,
-            model,
-            size: supportsSize ? size : undefined,
-            quality: supportsQuality ? quality : undefined,
-            aspectRatio: isImagen ? aspectRatio : undefined,
-            sampleImageSize: isImagen ? sampleImageSize : undefined,
-            personGeneration: isImagen ? personGeneration : undefined,
-            images: supportsFiles ? files.map(({ mimeType, data }) => ({ mimeType, data })) : undefined,
-            openaiApiKey: model.startsWith("openai/") ? openaiApiKey : undefined,
-            googleApiKey: model.startsWith("google/") ? googleApiKey : undefined,
-          }),
+        result = await client.generateImages({
+          prompt: text,
+          model: model.split("/")[1] || model,
+          n: supportsCount ? n : 1,
+          size: supportsSize ? size : undefined,
+          quality: supportsQuality ? quality : undefined,
+          response_format: "b64_json",
+          images: supportsFiles ? files.map(({ mimeType, data }) => ({ mimeType, data })) : undefined,
+          aspectRatio: isImagen ? aspectRatio : undefined,
+          sampleImageSize: isImagen ? sampleImageSize : undefined,
+          personGeneration: isImagen ? personGeneration : undefined,
         });
       } else { // edit
-        const formData = new FormData();
-        formData.append("prompt", text);
-        formData.append("model", model);
-        formData.append("n", String(n));
-        if (size) formData.append("size", size);
-        if (quality) formData.append("quality", quality);
-        formData.append("response_format", "b64_json");
-        if (openaiApiKey) formData.append("openaiApiKey", openaiApiKey);
-        
-        files.forEach((file) => {
-          const blob = new Blob([Uint8Array.from(atob(file.data), c => c.charCodeAt(0))], { type: file.mimeType });
-          formData.append(`image`, blob, file.name);
-        });
-        
-        res = await fetch("/api/edit", {
-          method: "POST",
-          body: formData,
+        result = await (client as any).editImage({
+          image: files.length > 0 ? files.map(({ mimeType, data }) => ({ mimeType, data })) : undefined,
+          prompt: text,
+          model: model.split("/")[1] || model,
+          n: n,
+          size: supportsSize ? size : undefined,
+          response_format: "b64_json",
         });
       }
-      let json;
-      try {
-        json = await res.json();
-      } catch {
-        errorMessage = "API returned malformed response.";
-        throw new Error(errorMessage);
-      }
-      if (!res.ok || json?.error) {
-        errorMessage = json?.error || `Request failed with status ${res.status}`;
-        throw new Error(errorMessage);
-      }
-      const images = json.images as { url?: string; b64_json?: string }[];
-      if (!images || !Array.isArray(images) || images.length === 0) {
+      // Process the result directly from the client API
+      if (!result || !Array.isArray(result) || result.length === 0) {
         errorMessage = "No images returned. There may have been an error.";
         throw new Error(errorMessage);
       }
       const id = crypto.randomUUID();
       const persistedImages: { url?: string; b64_json?: string }[] = await Promise.all(
-        images.map(async (img) => {
+        result.map(async (img) => {
           if (img.b64_json || !img.url) return img;
           try {
             const res = await fetch(img.url, { mode: "cors" });
@@ -244,7 +230,7 @@ export default function ChatUI() {
         })
       );
       const rec = { id, prompt: text, model, images: persistedImages, createdAt: Date.now() };
-      setItems((prev) => [{ id, prompt: text, model, images: images }, ...prev]);
+      setItems((prev) => [{ id, prompt: text, model, images: result }, ...prev]);
       addHistory(rec).catch(() => {});
       setPrompt("");
       setFiles([]);

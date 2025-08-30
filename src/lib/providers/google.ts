@@ -18,7 +18,7 @@ export class GoogleImageProvider implements ImageProvider {
 
     if (model.startsWith("gemini")) {
       return this.generateWithGemini(prompt, model, n, images);
-    } else if (model.startsWith("imagen")) {
+    } else if (model.startsWith("imagen-4.0")) {
       return this.generateWithImagen(
         prompt,
         model,

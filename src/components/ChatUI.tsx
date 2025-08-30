@@ -39,7 +39,7 @@ export default function ChatUI() {
   const [showTooltip, setShowTooltip] = useState(false);
   const [showDropzone, setShowDropzone] = useState(false);
 
-  const isImagen = model.startsWith("google/imagen");
+  const isImagen = model.startsWith("google/imagen-4.0");
   const isDalle3 = model.includes("dall-e-3");
   const isGptImage = model.includes("gpt-image-1");
   const supportsQuality = isDalle3 || isGptImage;
@@ -543,6 +543,8 @@ export default function ChatUI() {
                 <option value="openai/gpt-image-1">OpenAI GPT Image 1</option>
                 <option value="google/gemini-2.5-flash-image-preview">Google Gemini 2.5 Flash</option>
                 <option value="google/imagen-4.0-generate-001">Google Imagen 4</option>
+                <option value="google/imagen-4.0-ultra-generate-001">Google Imagen 4 Ultra</option>
+                <option value="google/imagen-4.0-fast-generate-001">Google Imagen 4 Fast</option>
               </>
             )}
           </select>

@@ -2,8 +2,8 @@ import ChatUI from "@/components/ChatUI";
 
 export default function Home() {
   return (
-    <div className="min-h-screen p-6 sm:p-10">
+    <main className="min-h-screen p-4 sm:p-6 md:p-8">
       <ChatUI />
-    </div>
+    </main>
   );
 }

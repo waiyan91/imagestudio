@@ -33,6 +33,7 @@ export default function ChatUI() {
   const [sampleImageSize, setSampleImageSize] = useState<SampleImageSize>("1K");
   const [personGeneration, setPersonGeneration] = useState<PersonGeneration>("allow_adult");
   const [operationMode, setOperationMode] = useState<OperationMode>("generate");
+  const [showTooltip, setShowTooltip] = useState(false);
 
   const isImagen = model.startsWith("google/imagen");
   const isDalle3 = model.includes("dall-e-3");
@@ -325,7 +326,7 @@ export default function ChatUI() {
   return (
     <div className="w-full max-w-5xl mx-auto flex flex-col gap-12 px-4 sm:px-6 py-8">
       <header className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tighter text-cyan-400">Image Studio</h1>
+        <h1 className="text-4xl font-bold text-[var(--accent)]">Image Studio</h1>
         <div className="flex items-center gap-4">
           <button
             type="button"
@@ -335,11 +336,11 @@ export default function ChatUI() {
                 setItems([]);
               }
             }}
-            className="text-xs px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+            className="text-sm px-3 py-1 border-2 border-[var(--border-color)] bg-[var(--button-bg)] hover:bg-[var(--button-hover-bg)] shadow-[2px_2px_0px_0px_var(--accent)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] text-[var(--foreground)]"
           >
             Clear History
           </button>
-          <div className="text-xs opacity-50">(stored locally)</div>
+          <div className="text-sm opacity-70 text-[var(--foreground)]">(stored locally)</div>
         </div>
       </header>
 
@@ -351,10 +352,10 @@ export default function ChatUI() {
             <button
               type="button"
               onClick={() => setOperationMode("generate")}
-              className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
+              className={`px-4 py-2 text-sm font-semibold border-2 border-[var(--border-color)] ${
                 operationMode === "generate"
-                  ? "bg-cyan-500 text-black"
-                  : "bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30"
+                  ? "bg-[var(--accent)] text-[var(--background)]"
+                  : "bg-[var(--button-bg)] hover:bg-[var(--button-hover-bg)] text-[var(--foreground)]"
               }`}
             >
               Generate
@@ -369,11 +370,11 @@ export default function ChatUI() {
                 setOperationMode("edit");
               }}
               disabled={!canEdit}
-              className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
+              className={`px-4 py-2 text-sm font-semibold border-2 border-[var(--border-color)] ${
                 operationMode === "edit"
-                  ? "bg-cyan-500 text-black"
+                  ? "bg-[var(--accent)] text-[var(--background)]"
                   : canEdit
-                  ? "bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30"
+                  ? "bg-[var(--button-bg)] hover:bg-[var(--button-hover-bg)] text-[var(--foreground)]"
                   : "bg-gray-700 text-gray-500 cursor-not-allowed"
               }`}
             >
@@ -383,13 +384,13 @@ export default function ChatUI() {
         </div>
 
         {/* Operation Mode Description */}
-        <div className="text-sm opacity-70 bg-white/5 p-3 rounded-lg">
+        <div className="text-sm opacity-80 bg-[var(--input-bg)] p-3 border-2 border-[var(--border-color)] inset-shadow text-[var(--foreground)]">
           {operationMode === "generate" && "Create new images from text descriptions."}
           {operationMode === "edit" && "Modify existing images using text prompts. Upload images and describe the changes you want."}
         </div>
 
         <textarea
-          className="w-full min-h-28 max-h-[40vh] p-4 rounded-lg bg-[var(--input-bg)] text-lg placeholder-gray-500 outline-none resize-y focus:ring-2 focus:ring-cyan-400"
+          className="w-full min-h-28 max-h-[40vh] p-4 bg-[var(--input-bg)] text-lg placeholder-gray-500 outline-none resize-y border-2 border-[var(--border-color)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] text-[var(--foreground)]"
           placeholder={
             operationMode === "generate"
               ? "Describe the image you want to create..."
@@ -407,10 +408,10 @@ export default function ChatUI() {
           </label>
           <label
             htmlFor="file-upload"
-            className={`px-4 py-2 text-sm font-semibold rounded-lg ${
+            className={`px-4 py-2 text-sm font-semibold border-2 border-[var(--border-color)] ${
               !supportsFiles && !requiresFiles
                 ? "opacity-50 cursor-not-allowed bg-gray-700"
-                : "cursor-pointer bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 transition-colors"
+                : "cursor-pointer bg-[var(--button-bg)] hover:bg-[var(--button-hover-bg)] text-[var(--foreground)]"
             }`}
             title={
               operationMode === "edit"
@@ -441,7 +442,7 @@ export default function ChatUI() {
               </div>
               <button
                 onClick={() => setFiles([])}
-                className="ml-auto text-xs px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+                className="ml-auto text-xs px-3 py-1 border-2 border-[var(--border-color)] bg-[var(--button-bg)] hover:bg-[var(--button-hover-bg)] shadow-[2px_2px_0px_0px_var(--accent)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] text-[var(--foreground)]"
               >
                 Clear
               </button>
@@ -464,7 +465,7 @@ export default function ChatUI() {
                     unoptimized
                     width={512}
                     height={512}
-                    className="w-full h-auto rounded-lg border-2 border-transparent group-hover:border-cyan-400 transition-all object-contain cursor-zoom-in"
+                    className="w-full h-auto border-2 border-[var(--border-color)] group-hover:border-[var(--accent)] transition-all object-contain cursor-zoom-in"
                   />
                 </button>
                 <div className="mt-2 text-xs opacity-70 truncate">{f.name}</div>
@@ -475,7 +476,7 @@ export default function ChatUI() {
         <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
           <label className="text-sm font-medium opacity-80">Model</label>
           <select
-            className="px-3 py-2 rounded-lg bg-[var(--input-bg)] outline-none focus:ring-2 focus:ring-cyan-400"
+            className="px-3 py-2 bg-[var(--input-bg)] outline-none border-2 border-[var(--border-color)] focus:ring-2 focus:ring-[var(--accent)] text-[var(--foreground)]"
             value={model}
             onChange={(e) => setModel(e.target.value)}
           >
@@ -495,7 +496,7 @@ export default function ChatUI() {
             <>
               <label className="text-sm font-medium opacity-80">Aspect Ratio</label>
               <select
-                className="px-3 py-2 rounded-lg bg-[var(--input-bg)] outline-none focus:ring-2 focus:ring-cyan-400"
+                className="px-3 py-2 bg-[var(--input-bg)] outline-none border-2 border-[var(--border-color)] focus:ring-2 focus:ring-[var(--accent)] text-[var(--foreground)]"
                 value={aspectRatio}
                 onChange={(e) => setAspectRatio(e.target.value as AspectRatio)}
               >
@@ -507,7 +508,7 @@ export default function ChatUI() {
               </select>
               <label className="text-sm font-medium opacity-80">Image Size</label>
               <select
-                className="px-3 py-2 rounded-lg bg-[var(--input-bg)] outline-none focus:ring-2 focus:ring-cyan-400"
+                className="px-3 py-2 bg-[var(--input-bg)] outline-none border-2 border-[var(--border-color)] focus:ring-2 focus:ring-[var(--accent)] text-[var(--foreground)]"
                 value={sampleImageSize}
                 onChange={(e) => setSampleImageSize(e.target.value as SampleImageSize)}
               >
@@ -516,7 +517,7 @@ export default function ChatUI() {
               </select>
               <label className="text-sm font-medium opacity-80">Person Generation</label>
               <select
-                className="px-3 py-2 rounded-lg bg-[var(--input-bg)] outline-none focus:ring-2 focus:ring-cyan-400"
+                className="px-3 py-2 bg-[var(--input-bg)] outline-none border-2 border-[var(--border-color)] focus:ring-2 focus:ring-[var(--accent)] text-[var(--foreground)]"
                 value={personGeneration}
                 onChange={(e) => setPersonGeneration(e.target.value as PersonGeneration)}
               >
@@ -531,7 +532,7 @@ export default function ChatUI() {
             <>
               <label className="text-sm font-medium opacity-80">Size</label>
               <select
-                className="px-3 py-2 rounded-lg bg-[var(--input-bg)] outline-none focus:ring-2 focus:ring-cyan-400"
+                className="px-3 py-2 bg-[var(--input-bg)] outline-none border-2 border-[var(--border-color)] focus:ring-2 focus:ring-[var(--accent)] text-[var(--foreground)]"
                 value={size}
                 onChange={(e) => setSize(e.target.value as ImageSize)}
               >
@@ -555,7 +556,7 @@ export default function ChatUI() {
             <>
               <label className="text-sm font-medium opacity-80">Quality</label>
               <select
-                className="px-3 py-2 rounded-lg bg-[var(--input-bg)] outline-none focus:ring-2 focus:ring-cyan-400"
+                className="px-3 py-2 bg-[var(--input-bg)] outline-none border-2 border-[var(--border-color)] focus:ring-2 focus:ring-[var(--accent)] text-[var(--foreground)]"
                 value={quality}
                 onChange={(e) => setQuality(e.target.value as ImageQuality)}
               >
@@ -582,27 +583,38 @@ export default function ChatUI() {
             min={1}
             max={4}
             disabled={!supportsCount}
-            className="w-20 px-3 py-2 rounded-lg bg-[var(--input-bg)] disabled:opacity-50 outline-none focus:ring-2 focus:ring-cyan-400"
+            className="w-20 px-3 py-2 bg-[var(--input-bg)] disabled:opacity-50 outline-none border-2 border-[var(--border-color)] focus:ring-2 focus:ring-[var(--accent)] text-[var(--foreground)]"
             value={n}
             onChange={(e) => setN(Math.max(1, Math.min(4, Number(e.target.value))))}
           />
-          <label className="flex items-center gap-2 text-sm font-medium opacity-80 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={enhancePrompt}
-              onChange={(e) => setEnhancePrompt(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-cyan-400 focus:ring-cyan-400"
-            />
-            Enhance Prompt
-            <svg className="w-4 h-4 text-cyan-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
-              <title>This feature uses Google Gemini to enhance your prompt by making it more descriptive for better image generation.</title>
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-            </svg>
-          </label>
+          <div className="relative flex items-center gap-2">
+            <label className="flex items-center gap-2 text-sm font-medium opacity-80 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={enhancePrompt}
+                onChange={(e) => setEnhancePrompt(e.target.checked)}
+                className="h-5 w-5 appearance-none border-2 border-[var(--border-color)] bg-[var(--input-bg)] checked:bg-[var(--accent)] checked:after:content-['✓'] checked:text-[var(--background)] flex items-center justify-center"
+              />
+              Enhance Prompt
+            </label>
+            <button type="button" onClick={() => setShowTooltip(!showTooltip)} className="cursor-help">
+              <svg className="w-5 h-5 text-[var(--accent)]" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+              </svg>
+            </button>
+            {showTooltip && (
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2 text-sm text-[var(--foreground)] bg-[var(--background)] border-2 border-[var(--border-color)] shadow-[4px_4px_0px_0px_var(--accent)] z-10">
+                This feature uses Google Gemini to enhance your prompt by making it more descriptive for better image generation.
+                <button onClick={() => setShowTooltip(false)} className="absolute top-0 right-0 mt-1 mr-1 text-[var(--foreground)]">
+                  &times;
+                </button>
+              </div>
+            )}
+          </div>
           <button
             onClick={submit}
             disabled={loading}
-            className="ml-auto rounded-lg px-8 py-3 bg-cyan-500 text-black font-bold text-lg disabled:opacity-50 w-full sm:w-auto hover:bg-cyan-400 transition-all transform hover:scale-105"
+            className="ml-auto px-8 py-3 bg-[var(--accent)] text-[var(--background)] font-bold text-lg disabled:opacity-50 w-full sm:w-auto border-2 border-[var(--border-color)] shadow-[4px_4px_0px_0px_var(--accent)] active:shadow-none active:translate-x-[4px] active:translate-y-[4px]"
           >
             {loading
               ? (operationMode === "edit" ? "Editing…" : "Generating…")
@@ -618,11 +630,11 @@ export default function ChatUI() {
             <div className="flex items-start gap-6">
               <div className="flex-1">
                 <div className="mb-4 text-sm opacity-70 leading-relaxed">
-                  <span className="font-semibold text-cyan-400">Model:</span> {item.model} <br />
-                  <span className="font-semibold text-cyan-400">Prompt:</span> {item.prompt}
+                  <span className="font-semibold text-[var(--accent)]">Model:</span> {item.model} <br />
+                  <span className="font-semibold text-[var(--accent)]">Prompt:</span> {item.prompt}
                 </div>
                 {item.error ? (
-                  <div className="text-red-400 text-sm p-4 bg-red-500/10 rounded-lg">{item.error}</div>
+                  <div className="text-[var(--error-text)] text-sm p-4 bg-[var(--error-bg)] border-2 border-[var(--error-border)]">{item.error}</div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {item.images.map((img, idx) => {
@@ -641,7 +653,7 @@ export default function ChatUI() {
                               unoptimized
                               width={1024}
                               height={1024}
-                              className="w-full h-auto rounded-lg border-2 border-transparent group-hover:border-cyan-400 transition-all object-contain cursor-zoom-in"
+                              className="w-full h-auto border-2 border-[var(--border-color)] group-hover:border-[var(--accent)] transition-all object-contain cursor-zoom-in"
                             />
                           </button>
                         </div>
@@ -658,7 +670,7 @@ export default function ChatUI() {
                     setItems((prev) => prev.filter((i) => i.id !== item.id));
                   }
                 }}
-                className="text-xs px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+                className="text-xs px-3 py-1 border-2 border-[var(--border-color)] bg-[var(--button-bg)] hover:bg-[var(--button-hover-bg)] shadow-[2px_2px_0px_0px_var(--accent)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] text-[var(--foreground)]"
                 aria-label="Delete item"
               >
                 Delete
@@ -679,14 +691,14 @@ export default function ChatUI() {
             onClick={closePreview}
             aria-hidden="true"
           />
-          <div className="glassmorphism relative z-10 max-w-4xl max-h-[90vh] w-full bg-[var(--background)] text-foreground rounded-2xl shadow-2xl p-4">
+          <div className="glassmorphism relative z-10 max-w-4xl max-h-[90vh] w-full bg-[var(--background)] text-foreground p-4">
             <div className="flex items-center gap-4 mb-4">
               <div className="text-sm font-medium truncate flex-1" title={preview.alt}>{preview.alt}</div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => downloadImage(preview.src, (preview.alt || "image").replace(/\s+/g, "_") + ".png")}
-                  className="px-4 py-2 text-sm font-semibold rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 transition-colors"
+                  className="px-4 py-2 text-sm font-semibold border-2 border-[var(--border-color)] bg-[var(--button-bg)] hover:bg-[var(--button-hover-bg)] text-[var(--foreground)]"
                 >
                   Download
                 </button>
@@ -702,14 +714,14 @@ export default function ChatUI() {
                       ? "Use this image for editing"
                       : "Select a model that supports image editing to enable this feature."
                   }
-                  className="px-4 py-2 text-sm font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 transition-colors"
+                  className="px-4 py-2 text-sm font-semibold border-2 border-[var(--border-color)] disabled:opacity-50 disabled:cursor-not-allowed bg-[var(--button-bg)] hover:bg-[var(--button-hover-bg)] text-[var(--foreground)]"
                 >
                   Use for editing
                 </button>
                 <button
                   type="button"
                   onClick={closePreview}
-                  className="px-4 py-2 text-sm rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+                  className="px-4 py-2 text-sm border-2 border-[var(--border-color)] bg-[var(--button-bg)] hover:bg-[var(--button-hover-bg)] text-[var(--foreground)]"
                   aria-label="Close preview"
                 >
                   Close
@@ -722,7 +734,7 @@ export default function ChatUI() {
               <img
                 src={preview.src}
                 alt={preview.alt}
-                className="max-w-full max-h-full w-auto h-auto object-contain rounded-lg"
+                className="max-w-full max-h-full w-auto h-auto object-contain border-2 border-[var(--border-color)]"
               />
             </div>
           </div>

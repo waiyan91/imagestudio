@@ -6,6 +6,7 @@ import type {
   ImagenAspectRatio,
   ImagenSampleImageSize,
   ImagenPersonGeneration,
+  ResponseFormat,
 } from "@/lib/providers/types";
 
 const ALLOWED_SIZES = [
@@ -19,6 +20,7 @@ const ALLOWED_SIZES = [
 ] as const satisfies Readonly<ImageSize[]>;
 
 const ALLOWED_QUALITIES = ["standard", "hd", "auto", "low", "medium", "high"] as const satisfies Readonly<ImageQuality[]>;
+const ALLOWED_RESPONSE_FORMATS = ["url", "b64_json"] as const satisfies Readonly<ResponseFormat[]>;
 const ALLOWED_ASPECT_RATIOS = ["1:1", "3:4", "4:3", "9:16", "16:9"] as const satisfies Readonly<
   ImagenAspectRatio[]
 >;
@@ -39,6 +41,10 @@ export async function POST(req: NextRequest) {
     const sampleImageSizeInput: unknown = body?.sampleImageSize;
     const personGenerationInput: unknown = body?.personGeneration;
     const imagesInput: unknown = body?.images;
+    const responseFormatInput: unknown = body?.response_format;
+    const userInput: unknown = body?.user;
+    const streamInput: unknown = body?.stream;
+    const partialImagesInput: unknown = body?.partial_images;
 
     const size: ImageSize | undefined =
       typeof sizeInput === "string" && (ALLOWED_SIZES as readonly string[]).includes(sizeInput)
@@ -66,6 +72,23 @@ export async function POST(req: NextRequest) {
       typeof personGenerationInput === "string" &&
       (ALLOWED_PERSON_GENERATION as readonly string[]).includes(personGenerationInput)
         ? (personGenerationInput as ImagenPersonGeneration)
+        : undefined;
+
+    const response_format: ResponseFormat | undefined =
+      typeof responseFormatInput === "string" &&
+      (ALLOWED_RESPONSE_FORMATS as readonly string[]).includes(responseFormatInput)
+        ? (responseFormatInput as ResponseFormat)
+        : undefined;
+
+    const user: string | undefined =
+      typeof userInput === "string" ? userInput : undefined;
+
+    const stream: boolean | undefined =
+      typeof streamInput === "boolean" ? streamInput : undefined;
+
+    const partial_images: number | undefined =
+      typeof partialImagesInput === "number" && Number.isFinite(partialImagesInput)
+        ? Math.min(10, Math.max(1, Math.trunc(partialImagesInput)))
         : undefined;
 
     const n: number | undefined =
@@ -105,6 +128,10 @@ export async function POST(req: NextRequest) {
       personGeneration,
       images,
       model: modelId,
+      response_format,
+      user,
+      stream,
+      partial_images,
     });
 
     return NextResponse.json({ images: result, provider: provider.name });

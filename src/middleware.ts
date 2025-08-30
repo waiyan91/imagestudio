@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PASSWORD = process.env.GLOBAL_PASSWORD;
+const PASSWORD = process.env.NEXT_PUBLIC_GLOBAL_PASSWORD;
 
 export function middleware(request: NextRequest) {
   const url = request.nextUrl.clone();

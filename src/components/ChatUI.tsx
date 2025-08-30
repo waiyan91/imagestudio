@@ -16,6 +16,7 @@ type HistoryItem = {
 type AspectRatio = "1:1" | "3:4" | "4:3" | "9:16" | "16:9";
 type SampleImageSize = "1K" | "2K";
 type PersonGeneration = "dont_allow" | "allow_adult" | "allow_all";
+type OperationMode = "generate" | "edit";
 
 export default function ChatUI() {
   const [prompt, setPrompt] = useState("");
@@ -31,13 +32,37 @@ export default function ChatUI() {
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>("1:1");
   const [sampleImageSize, setSampleImageSize] = useState<SampleImageSize>("1K");
   const [personGeneration, setPersonGeneration] = useState<PersonGeneration>("allow_adult");
+  const [operationMode, setOperationMode] = useState<OperationMode>("generate");
 
   const isImagen = model.startsWith("google/imagen");
   const isDalle3 = model.includes("dall-e-3");
-  const supportsQuality = isDalle3;
+  const isGptImage = model.includes("gpt-image-1");
+  const supportsQuality = isDalle3 || isGptImage;
   const supportsSize = model.startsWith("openai/");
-  const supportsCount = !isDalle3 && !model.includes("gpt-image-1");
-  const supportsFiles = model === "openai/gpt-image-1" || model === "google/gemini-2.5-flash-image-preview";
+  const supportsCount = !isDalle3 && !isGptImage;
+  const supportsFiles = model === "openai/gpt-image-1" || (model === "google/gemini-2.5-flash-image-preview" && operationMode === "generate") || (model === "google/gemini-2.5-flash-image-preview" && operationMode === "edit");
+  
+  // Operation mode constraints
+  const canEdit = model === "openai/gpt-image-1";
+  const requiresFiles = operationMode === "edit";
+
+  // Auto-adjust quality when switching models
+  useEffect(() => {
+    if (isGptImage && (quality === "standard" || quality === "hd")) {
+      setQuality("auto");
+    } else if (isDalle3 && (quality === "auto" || quality === "low" || quality === "medium" || quality === "high")) {
+      setQuality("standard");
+    }
+  }, [model, isGptImage, isDalle3, quality]);
+
+  // Auto-adjust size when switching models
+  useEffect(() => {
+    if (isGptImage && (size === "1024x1792" || size === "1792x1024")) {
+      setSize("1024x1024");
+    } else if (!isGptImage && (size === "1024x1536" || size === "1536x1024")) {
+      setSize("1024x1024");
+    }
+  }, [model, isGptImage, size]);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,7 +91,17 @@ export default function ChatUI() {
 
   const submit = async () => {
     let text = prompt.trim();
-    if (!text) return;
+    
+    // Validation based on operation mode
+    if (operationMode === "generate" && !text) {
+      alert("Please enter a prompt for image generation.");
+      return;
+    }
+    if ((operationMode === "edit") && (!text || files.length === 0)) {
+      alert("Please enter a prompt and upload at least one image for editing.");
+      return;
+    }
+    
     setLoading(true);
     let errorMessage = "";
     try {
@@ -106,21 +141,43 @@ export default function ChatUI() {
           if (!errorMessage) errorMessage = err instanceof Error ? err.message : "Gemini API error.";
         }
       }
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: text,
-          n: supportsCount ? n : 1,
-          model,
-          size: supportsSize ? size : undefined,
-          quality: supportsQuality ? quality : undefined,
-          aspectRatio: isImagen ? aspectRatio : undefined,
-          sampleImageSize: isImagen ? sampleImageSize : undefined,
-          personGeneration: isImagen ? personGeneration : undefined,
-          images: supportsFiles ? files.map(({ mimeType, data }) => ({ mimeType, data })) : undefined,
-        }),
-      });
+      
+      let res;
+      if (operationMode === "generate") {
+        res = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: text,
+            n: supportsCount ? n : 1,
+            model,
+            size: supportsSize ? size : undefined,
+            quality: supportsQuality ? quality : undefined,
+            aspectRatio: isImagen ? aspectRatio : undefined,
+            sampleImageSize: isImagen ? sampleImageSize : undefined,
+            personGeneration: isImagen ? personGeneration : undefined,
+            images: supportsFiles ? files.map(({ mimeType, data }) => ({ mimeType, data })) : undefined,
+          }),
+        });
+      } else { // edit
+        const formData = new FormData();
+        formData.append("prompt", text);
+        formData.append("model", model);
+        formData.append("n", String(n));
+        if (size) formData.append("size", size);
+        if (quality) formData.append("quality", quality);
+        formData.append("response_format", "b64_json");
+        
+        files.forEach((file, index) => {
+          const blob = new Blob([Uint8Array.from(atob(file.data), c => c.charCodeAt(0))], { type: file.mimeType });
+          formData.append(`image`, blob, file.name);
+        });
+        
+        res = await fetch("/api/edit", {
+          method: "POST",
+          body: formData,
+        });
+      }
       let json;
       try {
         json = await res.json();
@@ -287,9 +344,57 @@ export default function ChatUI() {
       </header>
 
       <div className="glassmorphism flex flex-col gap-6 p-6 sm:p-8">
+        {/* Operation Mode Selector */}
+        <div className="flex flex-wrap items-center gap-4">
+          <label className="text-sm font-medium opacity-80">Operation</label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setOperationMode("generate")}
+              className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
+                operationMode === "generate"
+                  ? "bg-cyan-500 text-black"
+                  : "bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30"
+              }`}
+            >
+              Generate
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!canEdit) {
+                  alert("Image editing is only available with OpenAI GPT Image 1 model.");
+                  return;
+                }
+                setOperationMode("edit");
+              }}
+              disabled={!canEdit}
+              className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
+                operationMode === "edit"
+                  ? "bg-cyan-500 text-black"
+                  : canEdit
+                  ? "bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30"
+                  : "bg-gray-700 text-gray-500 cursor-not-allowed"
+              }`}
+            >
+              Edit
+            </button>
+          </div>
+        </div>
+
+        {/* Operation Mode Description */}
+        <div className="text-sm opacity-70 bg-white/5 p-3 rounded-lg">
+          {operationMode === "generate" && "Create new images from text descriptions."}
+          {operationMode === "edit" && "Modify existing images using text prompts. Upload images and describe the changes you want."}
+        </div>
+
         <textarea
           className="w-full min-h-28 max-h-[40vh] p-4 rounded-lg bg-[var(--input-bg)] text-lg placeholder-gray-500 outline-none resize-y focus:ring-2 focus:ring-cyan-400"
-          placeholder="Describe the image you want to create..."
+          placeholder={
+            operationMode === "generate"
+              ? "Describe the image you want to create..."
+              : "Describe how you want to modify the uploaded image(s)..."
+          }
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={(e) => {
@@ -297,16 +402,20 @@ export default function ChatUI() {
           }}
         />
         <div className="flex flex-wrap items-center gap-4">
-          <label className="text-sm font-medium opacity-80">Attach images</label>
+          <label className="text-sm font-medium opacity-80">
+            {operationMode === "edit" ? "Images to edit" : "Attach images"}
+          </label>
           <label
             htmlFor="file-upload"
             className={`px-4 py-2 text-sm font-semibold rounded-lg ${
-              !supportsFiles
+              !supportsFiles && !requiresFiles
                 ? "opacity-50 cursor-not-allowed bg-gray-700"
                 : "cursor-pointer bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 transition-colors"
             }`}
             title={
-              supportsFiles
+              operationMode === "edit"
+                ? "Upload images to edit with your prompt"
+                : supportsFiles
                 ? "Attach images for editing"
                 : "Select a model that supports image editing to enable this feature."
             }
@@ -320,7 +429,7 @@ export default function ChatUI() {
             multiple
             onChange={onPickFiles}
             className="hidden"
-            disabled={!supportsFiles}
+            disabled={!supportsFiles && !requiresFiles}
           />
           {files.length > 0 && (
             <>
@@ -370,10 +479,16 @@ export default function ChatUI() {
             value={model}
             onChange={(e) => setModel(e.target.value)}
           >
-            <option value="openai/dall-e-3">OpenAI DALL-E 3</option>
-            <option value="openai/gpt-image-1">OpenAI GPT Image 1</option>
-            <option value="google/gemini-2.5-flash-image-preview">Google Gemini 2.5 Flash</option>
-            <option value="google/imagen-4.0-generate-001">Google Imagen 4</option>
+            {operationMode === "edit" ? (
+              <option value="openai/gpt-image-1">OpenAI GPT Image 1 (Editing)</option>
+            ) : (
+              <>
+                <option value="openai/dall-e-3">OpenAI DALL-E 3</option>
+                <option value="openai/gpt-image-1">OpenAI GPT Image 1</option>
+                <option value="google/gemini-2.5-flash-image-preview">Google Gemini 2.5 Flash</option>
+                <option value="google/imagen-4.0-generate-001">Google Imagen 4</option>
+              </>
+            )}
           </select>
 
           {isImagen && (
@@ -421,12 +536,15 @@ export default function ChatUI() {
                 onChange={(e) => setSize(e.target.value as ImageSize)}
               >
                 <option value="1024x1024">1024x1024</option>
-                <option value="1024x1792">1024x1792</option>
-                <option value="1792x1024">1792x1024</option>
-                {model.includes("dall-e-2") && (
+                {isGptImage ? (
                   <>
-                    <option value="256x256">256x256</option>
-                    <option value="512x512">512x512</option>
+                    <option value="1024x1536">1024x1536</option>
+                    <option value="1536x1024">1536x1024</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="1024x1792">1024x1792</option>
+                    <option value="1792x1024">1792x1024</option>
                   </>
                 )}
               </select>
@@ -441,8 +559,19 @@ export default function ChatUI() {
                 value={quality}
                 onChange={(e) => setQuality(e.target.value as ImageQuality)}
               >
-                <option value="standard">Standard</option>
-                <option value="hd">HD</option>
+                {isGptImage ? (
+                  <>
+                    <option value="auto">Auto</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="standard">Standard</option>
+                    <option value="hd">HD</option>
+                  </>
+                )}
               </select>
             </>
           )}
@@ -465,13 +594,20 @@ export default function ChatUI() {
               className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-cyan-400 focus:ring-cyan-400"
             />
             Enhance Prompt
+            <svg className="w-4 h-4 text-cyan-400 cursor-help" fill="currentColor" viewBox="0 0 20 20">
+              <title>This feature uses Google Gemini to enhance your prompt by making it more descriptive for better image generation.</title>
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+            </svg>
           </label>
           <button
             onClick={submit}
             disabled={loading}
             className="ml-auto rounded-lg px-8 py-3 bg-cyan-500 text-black font-bold text-lg disabled:opacity-50 w-full sm:w-auto hover:bg-cyan-400 transition-all transform hover:scale-105"
           >
-            {loading ? "Generating…" : "Generate"}
+            {loading
+              ? (operationMode === "edit" ? "Editing…" : "Generating…")
+              : (operationMode === "edit" ? "Edit Image" : "Generate")
+            }
           </button>
         </div>
       </div>

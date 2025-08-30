@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import NextImage from "next/image";
 import { addHistory, getAllHistory, clearHistory as clearDb, deleteHistory } from "@/lib/storage/indexeddb";
 import { ImageQuality, ImageSize } from "@/lib/providers/types";
+import icon from "../icon.png";
+import LoadingSpinner from "./LoadingSpinner";
+import TypingEffect from "./TypingEffect";
 
 type HistoryItem = {
   id: string;
@@ -34,6 +37,7 @@ export default function ChatUI() {
   const [personGeneration, setPersonGeneration] = useState<PersonGeneration>("allow_adult");
   const [operationMode, setOperationMode] = useState<OperationMode>("generate");
   const [showTooltip, setShowTooltip] = useState(false);
+  const [showDropzone, setShowDropzone] = useState(false);
 
   const isImagen = model.startsWith("google/imagen");
   const isDalle3 = model.includes("dall-e-3");
@@ -260,6 +264,32 @@ export default function ChatUI() {
     setFiles(reads);
   };
 
+  const onDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setShowDropzone(false);
+    const list = e.dataTransfer.files;
+    if (!list || list.length === 0) return;
+    const filesArr = Array.from(list).slice(0, 3);
+    const reads = await Promise.all(
+      filesArr.map(
+        (f) =>
+          new Promise<{ mimeType: string; data: string; name: string }>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onerror = () => reject(reader.error);
+            reader.onload = () => {
+              const result = reader.result as string;
+              const match = result.match(/^data:([^;]+);base64,(.+)$/);
+              const mimeType = f.type || (match ? match[1] : "image/png");
+              const data = match ? match[2] : "";
+              resolve({ mimeType, data, name: f.name });
+            };
+            reader.readAsDataURL(f);
+          })
+      )
+    );
+    setFiles(reads);
+  };
+
   const openPreview = (src: string, alt: string) => {
     if (!src) return;
     setPreview({ src, alt });
@@ -324,10 +354,14 @@ export default function ChatUI() {
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto flex flex-col gap-12 px-4 sm:px-6 py-8">
-      <header className="flex items-center justify-between">
-        <h1 className="text-4xl font-bold text-[var(--accent)]">Image Studio</h1>
-        <div className="flex items-center gap-4">
+    <div className="w-full max-w-5xl mx-auto flex flex-col px-2 sm:px-6 py-4 sm:py-8">
+      {loading && <LoadingSpinner />}
+      <header className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-0">
+        <div className="flex items-center gap-3">
+          <TypingEffect text="Image Studio" className="text-2xl sm:text-4xl font-bold text-[var(--accent)] space-mono-bold" />
+          <NextImage src={icon} alt="Image Studio Icon" width={180} height={180} />
+        </div>
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={async () => {
@@ -340,11 +374,11 @@ export default function ChatUI() {
           >
             Clear History
           </button>
-          <div className="text-sm opacity-70 text-[var(--foreground)]">(stored locally)</div>
+          <div className="hidden sm:block text-sm opacity-70 text-[var(--foreground)]">(stored locally)</div>
         </div>
       </header>
 
-      <div className="glassmorphism flex flex-col gap-6 p-6 sm:p-8">
+      <div className="glassmorphism flex flex-col gap-6 p-4 sm:p-8">
         {/* Operation Mode Selector */}
         <div className="flex flex-wrap items-center gap-4">
           <label className="text-sm font-medium opacity-80">Operation</label>
@@ -432,6 +466,18 @@ export default function ChatUI() {
             className="hidden"
             disabled={!supportsFiles && !requiresFiles}
           />
+          <button
+            type="button"
+            onClick={() => setShowDropzone(!showDropzone)}
+            className={`px-4 py-2 text-sm font-semibold border-2 border-[var(--border-color)] ${
+              !supportsFiles && !requiresFiles
+                ? "opacity-50 cursor-not-allowed bg-gray-700"
+                : "cursor-pointer bg-[var(--button-bg)] hover:bg-[var(--button-hover-bg)] text-[var(--foreground)]"
+            }`}
+            disabled={!supportsFiles && !requiresFiles}
+          >
+            Drag & Drop
+          </button>
           {files.length > 0 && (
             <>
               <div
@@ -471,6 +517,16 @@ export default function ChatUI() {
                 <div className="mt-2 text-xs opacity-70 truncate">{f.name}</div>
               </div>
             ))}
+          </div>
+        )}
+        {showDropzone && (
+          <div
+            onDrop={onDrop}
+            onDragOver={(e) => e.preventDefault()}
+            onDragLeave={() => setShowDropzone(false)}
+            className="w-full h-48 border-2 border-dashed border-[var(--border-color)] rounded-lg flex items-center justify-center text-center text-[var(--foreground)] bg-[var(--input-bg)]"
+          >
+            <p>Drop up to 3 image files here</p>
           </div>
         )}
         <div className="flex flex-wrap items-center gap-x-6 gap-y-4">

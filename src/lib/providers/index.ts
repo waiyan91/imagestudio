@@ -1,4 +1,4 @@
-import { env, requireEnvForProvider } from "@/lib/env";
+import { requireEnvForProvider } from "@/lib/env";
 import type { ImageProvider } from "./types";
 import { OpenAIImageProvider } from "./openai";
 import { GoogleImageProvider } from "./google";

@@ -13,6 +13,10 @@ type HistoryItem = {
   error?: string;
 };
 
+type AspectRatio = "1:1" | "3:4" | "4:3" | "9:16" | "16:9";
+type SampleImageSize = "1K" | "2K";
+type PersonGeneration = "dont_allow" | "allow_adult" | "allow_all";
+
 export default function ChatUI() {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
@@ -24,9 +28,9 @@ export default function ChatUI() {
   const [model, setModel] = useState("openai/dall-e-3");
   const [size, setSize] = useState<ImageSize>("1024x1024");
   const [quality, setQuality] = useState<ImageQuality>("standard");
-  const [aspectRatio, setAspectRatio] = useState<any>("1:1");
-  const [sampleImageSize, setSampleImageSize] = useState<any>("1K");
-  const [personGeneration, setPersonGeneration] = useState<any>("allow_adult");
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>("1:1");
+  const [sampleImageSize, setSampleImageSize] = useState<SampleImageSize>("1K");
+  const [personGeneration, setPersonGeneration] = useState<PersonGeneration>("allow_adult");
 
   const isImagen = model.startsWith("google/imagen");
   const isDalle3 = model.includes("dall-e-3");
@@ -87,7 +91,7 @@ export default function ChatUI() {
           let geminiJson;
           try {
             geminiJson = await geminiRes.json();
-          } catch (err) {
+          } catch {
             errorMessage = "Gemini API returned malformed response.";
             throw new Error(errorMessage);
           }
@@ -120,7 +124,7 @@ export default function ChatUI() {
       let json;
       try {
         json = await res.json();
-      } catch (err) {
+      } catch {
         errorMessage = "API returned malformed response.";
         throw new Error(errorMessage);
       }
@@ -351,7 +355,7 @@ export default function ChatUI() {
               <select
                 className="px-2 py-1 rounded-md bg-black/5 dark:bg-white/10"
                 value={aspectRatio}
-                onChange={(e) => setAspectRatio(e.target.value)}
+                onChange={(e) => setAspectRatio(e.target.value as AspectRatio)}
               >
                 <option value="1:1">1:1</option>
                 <option value="3:4">3:4</option>
@@ -363,7 +367,7 @@ export default function ChatUI() {
               <select
                 className="px-2 py-1 rounded-md bg-black/5 dark:bg-white/10"
                 value={sampleImageSize}
-                onChange={(e) => setSampleImageSize(e.target.value)}
+                onChange={(e) => setSampleImageSize(e.target.value as SampleImageSize)}
               >
                 <option value="1K">1K</option>
                 <option value="2K">2K</option>
@@ -372,7 +376,7 @@ export default function ChatUI() {
               <select
                 className="px-2 py-1 rounded-md bg-black/5 dark:bg-white/10"
                 value={personGeneration}
-                onChange={(e) => setPersonGeneration(e.target.value)}
+                onChange={(e) => setPersonGeneration(e.target.value as PersonGeneration)}
               >
                 <option value="dont_allow">Don't Allow</option>
                 <option value="allow_adult">Allow Adults</option>
@@ -528,6 +532,7 @@ export default function ChatUI() {
             </div>
             <div className="overflow-auto max-h-[75vh]">
               {/* Use a plain img to avoid Next.js layout constraints in a modal */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={preview.src}
                 alt={preview.alt}

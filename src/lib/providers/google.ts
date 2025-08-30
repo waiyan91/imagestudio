@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, PersonGeneration } from "@google/genai";
 import { env } from "@/lib/env";
 import type { GenerateImageParams, GeneratedImage, ImageProvider } from "./types";
 
@@ -19,7 +19,14 @@ export class GoogleImageProvider implements ImageProvider {
     if (model.startsWith("gemini")) {
       return this.generateWithGemini(prompt, model, n, images);
     } else if (model.startsWith("imagen")) {
-      return this.generateWithImagen(prompt, model, n, aspectRatio, sampleImageSize, personGeneration);
+      return this.generateWithImagen(
+        prompt,
+        model,
+        n,
+        aspectRatio,
+        sampleImageSize,
+        personGeneration as PersonGeneration
+      );
     } else {
       throw new Error(`Unknown Google model: ${model}`);
     }
@@ -31,10 +38,15 @@ export class GoogleImageProvider implements ImageProvider {
     n?: number,
     aspectRatio?: string,
     sampleImageSize?: string,
-    personGeneration?: string
+    personGeneration?: PersonGeneration
   ): Promise<GeneratedImage[]> {
     const target = Math.max(1, Math.min(4, n ?? 1));
-    const config: any = {
+    const config: {
+      numberOfImages: number;
+      aspectRatio?: string;
+      sampleImageSize?: string;
+      personGeneration?: PersonGeneration;
+    } = {
       numberOfImages: target,
     };
     if (aspectRatio) config.aspectRatio = aspectRatio;
@@ -63,7 +75,7 @@ export class GoogleImageProvider implements ImageProvider {
       inlineData: { mimeType: img.mimeType, data: img.data },
     }));
 
-    const contents = [...imageParts, { text: prompt }] as any;
+    const contents = [...imageParts, { text: prompt }];
 
     const callOnce = async (): Promise<GeneratedImage[]> => {
       const response = await this.client.models.generateContent({
@@ -72,7 +84,7 @@ export class GoogleImageProvider implements ImageProvider {
       });
 
       type InlineDataPart = { inlineData?: { data?: string } };
-      const isInlineDataPart = (p: any): p is InlineDataPart =>
+      const isInlineDataPart = (p: unknown): p is InlineDataPart =>
         typeof (p as InlineDataPart).inlineData !== "undefined";
 
       const out: GeneratedImage[] = [];

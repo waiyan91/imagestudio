@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import NextImage from "next/image";
 import { addHistory, getAllHistory, clearHistory as clearDb, deleteHistory } from "@/lib/storage/indexeddb";
-import { ImageQuality, ImageSize } from "@/lib/client-api";
-import { createImageClient, type GeneratedImage } from "@/lib/client-api";
+import { ImageQuality, ImageSize } from "@/lib/providers/types";
 import icon from "../icon.png";
 import TypingEffect from "./TypingEffect";
 
@@ -38,8 +37,6 @@ export default function ChatUI() {
   const [operationMode, setOperationMode] = useState<OperationMode>("generate");
   const [showTooltip, setShowTooltip] = useState(false);
   const [showDropzone, setShowDropzone] = useState(false);
-  const [openaiApiKey, setOpenaiApiKey] = useState("");
-  const [googleApiKey, setGoogleApiKey] = useState("");
 
   const isImagen = model.startsWith("google/imagen-4.0");
   const isDalle3 = model.includes("dall-e-3");
@@ -96,18 +93,6 @@ export default function ChatUI() {
     };
   }, []);
 
-  useEffect(() => {
-    const savedOpenaiKey = localStorage.getItem("openai_api_key") || "";
-    const savedGoogleKey = localStorage.getItem("google_api_key") || "";
-    setOpenaiApiKey(savedOpenaiKey);
-    setGoogleApiKey(savedGoogleKey);
-  }, []);
-
-  const saveKeys = () => {
-    localStorage.setItem("openai_api_key", openaiApiKey);
-    localStorage.setItem("google_api_key", googleApiKey);
-    alert("API keys have been saved.");
-  };
 
   const submit = async () => {
     let text = prompt.trim();
@@ -127,25 +112,11 @@ export default function ChatUI() {
     try {
       if (enhancePrompt) {
         try {
-          // Enhanced prompt using Google Gemini API directly
-          const geminiApiKey = googleApiKey;
-          if (!geminiApiKey) {
-            throw new Error("Missing Google API key for prompt enhancement.");
-          }
-          const geminiApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=" + geminiApiKey;
-          const geminiPrompt = `Rewrite the following prompt to be a single, highly descriptive prompt for image generation. Do not provide options or suggestions, just return the enhanced prompt only: ${text}`;
-          const geminiRes = await fetch(geminiApiUrl, {
+          // Enhanced prompt using Google Gemini API (server-side)
+          const geminiRes = await fetch("/api/enhance-prompt", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    { text: geminiPrompt }
-                  ]
-                }
-              ]
-            }),
+            body: JSON.stringify({ prompt: text }),
           });
           let geminiJson;
           try {
@@ -154,10 +125,10 @@ export default function ChatUI() {
             errorMessage = "Gemini API returned malformed response.";
             throw new Error(errorMessage);
           }
-          if (geminiRes.ok && geminiJson?.candidates?.[0]?.content?.parts?.[0]?.text) {
-            text = geminiJson.candidates[0].content.parts[0].text;
+          if (geminiRes.ok && geminiJson?.enhancedPrompt) {
+            text = geminiJson.enhancedPrompt;
           } else {
-            errorMessage = geminiJson?.error?.message || "Gemini API error.";
+            errorMessage = geminiJson?.error || "Gemini API error.";
             throw new Error(errorMessage);
           }
         } catch (err) {
@@ -166,48 +137,64 @@ export default function ChatUI() {
         }
       }
       
-      // Get API key and provider
-      const [providerName] = model.split("/");
-      const apiKey = providerName === "openai" ? openaiApiKey : googleApiKey;
-      if (!apiKey) {
-        errorMessage = `Missing ${providerName === "openai" ? "OpenAI" : "Google"} API key`;
+      // Call server-side API routes
+      let res;
+      if (operationMode === "generate") {
+        res = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: text,
+            n: supportsCount ? n : 1,
+            model,
+            size: supportsSize ? size : undefined,
+            quality: supportsQuality ? quality : undefined,
+            aspectRatio: isImagen ? aspectRatio : undefined,
+            sampleImageSize: isImagen ? sampleImageSize : undefined,
+            personGeneration: isImagen ? personGeneration : undefined,
+            images: supportsFiles ? files.map(({ mimeType, data }) => ({ mimeType, data })) : undefined,
+          }),
+        });
+      } else { // edit
+        const formData = new FormData();
+        formData.append("prompt", text);
+        formData.append("model", model);
+        formData.append("n", String(n));
+        if (size) formData.append("size", size);
+        if (quality) formData.append("quality", quality);
+
+        files.forEach((file) => {
+          const blob = new Blob([Uint8Array.from(atob(file.data), c => c.charCodeAt(0))], { type: file.mimeType });
+          formData.append(`image`, blob, file.name);
+        });
+
+        res = await fetch("/api/edit", {
+          method: "POST",
+          body: formData,
+        });
+      }
+      // Process the API response
+      let json;
+      try {
+        json = await res.json();
+      } catch {
+        errorMessage = "API returned malformed response.";
+        throw new Error(errorMessage);
+      }
+      if (!res.ok || json?.error) {
+        errorMessage = json?.error || `Request failed with status ${res.status}`;
         throw new Error(errorMessage);
       }
 
-      const client = createImageClient(providerName as "openai" | "google", apiKey);
-      let result: GeneratedImage[] = [];
-
-      if (operationMode === "generate") {
-        result = await client.generateImages({
-          prompt: text,
-          model: model.split("/")[1] || model,
-          n: supportsCount ? n : 1,
-          size: supportsSize ? size : undefined,
-          quality: supportsQuality ? quality : undefined,
-          response_format: "b64_json",
-          images: supportsFiles ? files.map(({ mimeType, data }) => ({ mimeType, data })) : undefined,
-          aspectRatio: isImagen ? aspectRatio : undefined,
-          sampleImageSize: isImagen ? sampleImageSize : undefined,
-          personGeneration: isImagen ? personGeneration : undefined,
-        });
-      } else { // edit
-        result = await (client as any).editImage({
-          image: files.length > 0 ? files.map(({ mimeType, data }) => ({ mimeType, data })) : undefined,
-          prompt: text,
-          model: model.split("/")[1] || model,
-          n: n,
-          size: supportsSize ? size : undefined,
-          response_format: "b64_json",
-        });
-      }
-      // Process the result directly from the client API
-      if (!result || !Array.isArray(result) || result.length === 0) {
+      const images = json.images as { url?: string; b64_json?: string }[];
+      if (!images || !Array.isArray(images) || images.length === 0) {
         errorMessage = "No images returned. There may have been an error.";
         throw new Error(errorMessage);
       }
+
       const id = crypto.randomUUID();
       const persistedImages: { url?: string; b64_json?: string }[] = await Promise.all(
-        result.map(async (img) => {
+        images.map(async (img) => {
           if (img.b64_json || !img.url) return img;
           try {
             const res = await fetch(img.url, { mode: "cors" });
@@ -230,7 +217,7 @@ export default function ChatUI() {
         })
       );
       const rec = { id, prompt: text, model, images: persistedImages, createdAt: Date.now() };
-      setItems((prev) => [{ id, prompt: text, model, images: result }, ...prev]);
+      setItems((prev) => [{ id, prompt: text, model, images }, ...prev]);
       addHistory(rec).catch(() => {});
       setPrompt("");
       setFiles([]);
@@ -384,38 +371,7 @@ export default function ChatUI() {
       </header>
 
       <div className="glassmorphism flex flex-col gap-6 p-4 sm:p-8">
-        {/* API Key Inputs */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium opacity-80 mb-1">OpenAI API Key</label>
-            <input
-              type="password"
-              value={openaiApiKey}
-              onChange={(e) => setOpenaiApiKey(e.target.value)}
-              className="w-full p-2 bg-[var(--input-bg)] placeholder-gray-500 outline-none border-2 border-[var(--border-color)] focus:ring-2 focus:ring-[var(--accent)] text-[var(--foreground)]"
-              placeholder="Enter your OpenAI API key"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium opacity-80 mb-1">Google API Key</label>
-            <input
-              type="password"
-              value={googleApiKey}
-              onChange={(e) => setGoogleApiKey(e.target.value)}
-              className="w-full p-2 bg-[var(--input-bg)] placeholder-gray-500 outline-none border-2 border-[var(--border-color)] focus:ring-2 focus:ring-[var(--accent)] text-[var(--foreground)]"
-              placeholder="Enter your Google API key"
-            />
-          </div>
-        </div>
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={saveKeys}
-            className="px-4 py-2 text-sm font-semibold border-2 border-[var(--border-color)] bg-[var(--button-bg)] hover:bg-[var(--button-hover-bg)] shadow-[2px_2px_0px_0px_var(--accent)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] text-[var(--foreground)]"
-          >
-            Save Keys
-          </button>
-        </div>
+        {/* Shared API keys are configured server-side for all users */}
 
         {/* Operation Mode Selector */}
         <div className="flex flex-wrap items-center gap-4">

@@ -1,7 +1,7 @@
 # Image Studio
 
 Image Studio is a client-side web application for generating and editing images using various AI models. It provides a user-friendly chat-style interface to interact with state-of-the-art image generation models from OpenAI and Google. This application is designed for static hosting and can be deployed to platforms like Netlify without requiring a backend server.
-#website
+## Demo website
 https://imagestudiodev.netlify.app/
 ## Features
 

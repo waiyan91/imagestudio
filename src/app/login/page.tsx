@@ -7,12 +7,23 @@ export default function Login() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (password === process.env.NEXT_PUBLIC_GLOBAL_PASSWORD) {
-      document.cookie = `site_auth=${password}; path=/`;
-      window.location.href = "/";
-    } else {
-      setError("Incorrect password.");
-    }
+    // Submit password to server for validation
+    fetch('/api/verify-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        window.location.href = "/";
+      } else {
+        setError("Incorrect password.");
+      }
+    })
+    .catch(() => {
+      setError("Network error. Please try again.");
+    });
   }
 
   return (
